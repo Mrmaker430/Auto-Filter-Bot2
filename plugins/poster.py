@@ -115,7 +115,7 @@ async def _fetch_media_details(media_type: str, media_id: int, api_key=None):
 async def _search_media_id(query: str, api_key=None):
     """Search TMDB for the best matching movie/TV show and return (media_type, media_id)."""
     title, year = _extract_title_and_year(query)
-    params = {'query': title, 'language': 'en-US', 'page': 1, 'include_adult': False}
+    params = {'query': title, 'language': 'en-US', 'page': 1, 'include_adult': 'false'}
     result = await _tmdb_get('search/multi', params=params, api_key=api_key)
     multi_results = result.get('results', [])
 
