@@ -73,9 +73,14 @@
         }
     },
     "addons": [],
-    "buildpacks": [{
-        "url": "heroku/python"
-    }],
+    "buildpacks": [
+        {
+            "url": "heroku/heroku-buildpack-apt"
+        },
+        {
+            "url": "heroku/python"
+        }
+    ],
     "formation": {
         "worker": {
             "quantity": 1,

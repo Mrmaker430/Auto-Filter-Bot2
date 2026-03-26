@@ -1,6 +1,7 @@
 import asyncio
 import os
 import logging
+import ctypes.util
 import aiofiles
 import tempfile
 import uuid
@@ -93,7 +94,7 @@ async def extract_data_handler(client: Client, query: CallbackQuery):
             async for chunk in client.stream_media(log_msg, limit=chunk_limit):
                 await f.write(chunk)
 
-        lib_path = os.path.abspath("MediaInfo.dll") if os.path.exists("MediaInfo.dll") else None
+        lib_path = os.path.abspath("MediaInfo.dll") if os.path.exists("MediaInfo.dll") else ctypes.util.find_library('mediainfo')
 
         media_info = await asyncio.wait_for(
             asyncio.to_thread(MediaInfo.parse, temp_path, library_file=lib_path),
