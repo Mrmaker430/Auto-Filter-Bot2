@@ -574,7 +574,7 @@ def generate_movie_message(movie_doc, base_name):
             all_ep_parts = collapsed + sorted(ranges, key=lambda s: int(s.split("-")[0]))
             caption_lines.append(f"Season {int(season)}: Episodes {', '.join(all_ep_parts)}")
         caption_lines.append("")
-    caption_lines.append("<blockquote>〽️ Powered by @ComicArc</blockquote>")
+    caption_lines.append("<blockquote>〽️ Powered by @movie_magicccc</blockquote>")
     text = "\n".join(caption_lines).rstrip("\n")
     buttons = [[InlineKeyboardButton("🔍 ꜱᴇᴀʀᴄʜ ʜᴇʀᴇ", url=GROUP_LINK)]]
     return text, InlineKeyboardMarkup(buttons)
