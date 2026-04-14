@@ -6,7 +6,7 @@ class script(object):
 <blockquote><i>✨ ꜱᴇᴀʀᴄʜ ᴀɴʏ ᴀɴɪᴍᴇ ᴄᴏɴᴛᴇɴᴛ ɪɴ ꜱᴇᴄᴏɴᴅꜱ.</i></blockquote></b>"""
 
     ABOUT_TXT = """<b>‣ ᴍʏ ɴᴀᴍᴇ : <a href=https://telegram.me/{}>{}</a>
-‣ ᴄʀᴇᴀᴛᴏʀ : <a href='https://telegram.me/ComicArc'>ʀᴀʜᴜʟ</a> 
+‣ ᴄʀᴇᴀᴛᴏʀ : <a href='https://telegram.me/pArAd0X6'>𝘗𝘢𝘳𝘢𝘥𝟎𝘹</a> 
 ‣ ʟɪʙʀᴀʀʏ : <a href='https://docs.pyrogram.org/'>ᴘʏʀᴏɢʀᴀᴍ</a>
 ‣ ʟᴀɴɢᴜᴀɢᴇ : <a href='https://www.python.org/download/releases/3.0/'>ᴘʏᴛʜᴏɴ 𝟹</a> 
 ‣ ᴅᴀᴛᴀ ʙᴀsᴇ : <a href='https://www.mongodb.com/'>ᴍᴏɴɢᴏ ᴅʙ</a> 
@@ -128,8 +128,8 @@ class script(object):
 
 <b>‣ ꜱɪᴢᴇ : </b>{file_size}
 
-<b>🍁 ʙʏ : <a href="https://telegram.me/techifybots">[ ᴛᴇᴄʜɪꜰʏʙᴏᴛs ]</a></b>"""
-
+<b>🍁 ʙʏ : <a href="https://t.me/movie_magicccc">[ 𝐌𝐨𝐯𝐢𝐞 𝐌𝐚𝐠𝐢𝐜 ]</a></b>"""
+    
     IMDB_TEMPLATE_TXT = """<b><a href={url}>{title} (<a href={url}/releaseinfo>{year}</a>)
 
 ʀᴀᴛɪɴɢ : <a href={url}/ratings>{rating}</a>
@@ -137,10 +137,20 @@ class script(object):
 ᴀᴜᴅɪᴏ : {languages}
 
 sʜᴏᴡɴ ɪɴ : {remaining_seconds} <i>sᴇᴄ</i>⚡️
-<b>ʀᴇǫ ʙʏ : {message.from_user.mention}</b>"""
+<b>ʀᴇǫ ʙʏ : {message.from_user.mention}</b>
 
-    LOGO = """𝙱𝙾𝚃 𝚆𝙾𝚁𝙺𝙸𝙽𝙶 𝙿𝚁𝙾𝙿𝙴𝚁𝙻𝚈...."""
+✨ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝑩𝒚➥ 「<a href="https://www.instagram.com/mr_maker_74">𝑰𝒏𝒔𝒕𝒂𝒈𝒓𝒂𝒎</a>」"""
 
+    LOGO = r"""
+sᴛᴀʀᴛɪɴɢ....
+sᴜᴄᴄᴇssғᴜʟʟʏ sᴛᴀʀᴛᴇᴅ ᴛʜᴇ ʙᴏᴛ
+  _________       __                   
+ /   _____/____ _/  |_ ___.__._____    
+ \_____  \\__  \\   __<   |  |\__  \   
+ /        \/ __ \|  |  \___  | / __ \_ 
+/_______  (____  /__|  / ____|(____  / 
+        \/     \/      \/          \/  """
+    
     INFO_TXT = """<b><blockquote>👁️‍🗨️ 𝖴𝗌𝖾𝗋 𝖨𝗇𝖿𝗈</blockquote>
 
 ○ ɪᴅ : <code>{id}</code>
@@ -160,7 +170,7 @@ sʜᴏᴡɴ ɪɴ : {remaining_seconds} <i>sᴇᴄ</i>⚡️
 ◉ 𝟼𝟶 ᴅᴀʏꜱ - 𝟽𝟻 ₹  / 𝟽𝟻 ꜱᴛᴀʀ
 
 •─────•─────────•─────•
-🏷️ <a href='https://telegram.me/TechifyBots'>ꜱᴜʙꜱᴄʀɪᴘᴛɪᴏɴ ᴘʀᴏᴏꜰ</a>
+🏷️ <a href='https://telegram.me/'>ꜱᴜʙꜱᴄʀɪᴘᴛɪᴏɴ ᴘʀᴏᴏꜰ</a>
 
 ‼️ ᴍᴜꜱᴛ ꜱᴇɴᴅ ꜱᴄʀᴇᴇɴꜱʜᴏᴛ ᴀꜰᴛᴇʀ ᴘᴀʏᴍᴇɴᴛ.
 ‼️ ᴀꜰᴛᴇʀ ꜱᴇɴᴅɪɴɢ ꜱᴄʀᴇᴇɴꜱʜᴏᴛ ɢɪᴠᴇ ᴜꜱ ꜱᴏᴍᴇᴛɪᴍᴇꜱ ᴛᴏ ᴀᴅᴅ ʏᴏᴜ ɪɴ ᴘʀᴇᴍɪᴜᴍ ʟɪꜱᴛ."""
