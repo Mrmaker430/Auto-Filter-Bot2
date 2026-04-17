@@ -25,10 +25,10 @@ PICS = (environ.get('PICS', 'https://i.ibb.co/PzZNZHF6/IMG-20251116-113905-254.j
 MELCOW_PHOTO = environ.get("MELCOW_PHOTO", "https://i.ibb.co/2769f1rF/photo-2025-09-03-14-48-34-7548400762112442372.jpg")
 ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '1773034985').split()]
 CHANNELS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('CHANNELS', '-1002706389673 -1002251927740').split()]
-LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002732527335'))
-BIN_CHANNEL = int(environ.get('BIN_CHANNEL', '-1002732527335'))
-PREMIUM_LOGS = int(environ.get('PREMIUM_LOGS', '-1002732527335'))
-DELETE_CHANNELS = [int(dch) if id_pattern.search(dch) else dch for dch in environ.get('DELETE_CHANNELS', '-1002732527335').split()]
+LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002681646366'))
+BIN_CHANNEL = int(environ.get('BIN_CHANNEL', '-1002681646366'))
+PREMIUM_LOGS = int(environ.get('PREMIUM_LOGS', '-1002681646366'))
+DELETE_CHANNELS = [int(dch) if id_pattern.search(dch) else dch for dch in environ.get('DELETE_CHANNELS', '-1002681646366').split()]
 AUTH_CHANNELS = [int(ch) for ch in environ.get("AUTH_CHANNELS", "-1002251927740").split() if ch and id_pattern.match(ch)]
 AUTH_REQ_CHANNELS = [int(ch) for ch in environ.get("AUTH_REQ_CHANNELS", "-1002251927740").split() if ch and id_pattern.match(ch)]
 REQST_CHANNEL = int(ch) if (ch := environ.get("REQST_CHANNEL", "-1002471519870")) and id_pattern.search(ch) else None
@@ -54,7 +54,7 @@ TMDB_POSTER = bool(environ.get('TMDB_POSTER', True))
 LANDSCAPE_POSTER = bool(environ.get('LANDSCAPE_POSTER', True))
 
 IS_VERIFY = is_enabled('IS_VERIFY', False)
-LOG_API_CHANNEL = int(environ.get('LOG_API_CHANNEL', '-1002732527335'))
+LOG_API_CHANNEL = int(environ.get('LOG_API_CHANNEL', '-1002681646366'))
 VERIFY_IMG = environ.get("VERIFY_IMG", "https://i.ibb.co/xqNtSMpS/photo-2025-09-18-15-24-38-7551450511015149572.jpg")
 TUTORIAL = environ.get("TUTORIAL", "https://t.me/")
 TUTORIAL_2 = environ.get("TUTORIAL_2", "https://t.me/")
