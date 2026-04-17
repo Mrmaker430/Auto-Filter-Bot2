@@ -101,7 +101,7 @@ STAR_PREMIUM_PLANS = {10: "7day", 20: "15day", 40: "1month", 55: "45day", 75: "6
 BAD_WORDS = {"PrivateMovieZ", "toonworld4all", "themoviesboss", "1tamilmv", "tamilblasters", "1tamilblasters", "skymovieshd", "extraflix", "hdm2", "moviesmod", "hdhub4u", "mkvcinemas", "primefix", "join", "www", "villa", "tg", "original"}
 
 IS_FILE_LIMIT = bool(environ.get('IS_FILE_LIMIT', True)) 
-FILES_LIMIT = int(environ.get("FILES_LIMIT", "48"))
+FILES_LIMIT = int(environ.get("FILES_LIMIT", "15"))
 QUALITY_LIMIT = bool(environ.get('QUALITY_LIMIT', False)) 
 FREE_QUALITIES = ["360p", "480p"]
 
