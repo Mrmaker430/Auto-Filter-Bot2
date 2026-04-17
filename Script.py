@@ -3,7 +3,7 @@ class script(object):
 
 ɪ ᴀᴍ <a href="https://telegram.me/{}">{}</a>, ᴀ ᴘᴏᴡᴇʀꜰᴜʟ ᴀɴɪᴍᴇ ᴀᴜᴛᴏ-ꜰɪʟᴛᴇʀ ʙᴏᴛ ᴡɪᴛʜ ᴘʀᴇᴍɪᴜᴍ ꜰᴇᴀᴛᴜʀᴇꜱ ❤‍🔥
 
-<blockquote><i>✨ ꜱᴇᴀʀᴄʜ ᴀɴʏ ᴀɴɪᴍᴇ ᴄᴏɴᴛᴇɴᴛ ɪɴ ꜱᴇᴄᴏɴᴅꜱ.</i></blockquote></b>"""
+<blockquote><i>✨ ꜱᴇᴀʀᴄʜ ᴀɴʏ ᴄᴏɴᴛᴇɴᴛ ɪɴ ꜱᴇᴄᴏɴᴅꜱ.</i></blockquote></b>"""
 
     ABOUT_TXT = """<b>‣ ᴍʏ ɴᴀᴍᴇ : <a href=https://telegram.me/{}>{}</a>
 ‣ ᴄʀᴇᴀᴛᴏʀ : <a href='https://telegram.me/pArAd0X6'>𝘗𝘢𝘳𝘢𝘥𝟎𝘹</a> 
@@ -139,7 +139,7 @@ class script(object):
 sʜᴏᴡɴ ɪɴ : {remaining_seconds} <i>sᴇᴄ</i>⚡️
 <b>ʀᴇǫ ʙʏ : {message.from_user.mention}</b>
 
-✨ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝑩𝒚➥ 「<a href="https://www.instagram.com/mr_maker_74">𝑰𝒏𝒔𝒕𝒂𝒈𝒓𝒂𝒎</a>」"""
+ғᴏʟʟᴏᴡ ᴍᴇ :「<a href="https://www.instagram.com/mr_maker_74">𝑰𝒏𝒔𝒕𝒂𝒈𝒓𝒂𝒎</a>」"""
 
     LOGO = r"""
 sᴛᴀʀᴛɪɴɢ....
