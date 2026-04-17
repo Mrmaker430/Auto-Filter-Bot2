@@ -672,6 +672,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         link = await client.create_chat_invite_link(int(REQST_CHANNEL))
     except:
         pass
+        return
+        return
     if query.data == "close_data":
         try:
             user = query.message.reply_to_message.from_user.id
@@ -685,9 +687,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.message.reply_to_message.delete()
         except:
             pass
+            return
+        return
 
     elif query.data == "pages":
         await query.answer("ᴛʜɪs ɪs ᴘᴀɢᴇs ʙᴜᴛᴛᴏɴ 😅")
+        return
+        return
 
     if query.data.startswith("file"):
         ident, file_id = query.data.split("#")
@@ -695,6 +701,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         if int(user) != 0 and query.from_user.id != int(user):
             return await query.answer(script.ALRT_TXT.format(query.from_user.first_name), show_alert=True)
         await query.answer(url=f"https://telegram.me/{temp.U_NAME}?start=file_{query.message.chat.id}_{file_id}")
+        return
+        return
 
     elif query.data.startswith("sendfiles"):
         clicked = query.from_user.id
@@ -715,6 +723,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         except Exception as e:
             logger.exception(e)
             await query.answer(url=f"https://telegram.me/{temp.U_NAME}?start=sendfiles4_{key}")
+            return
+        return
 
     elif query.data.startswith("autofilter_delete"):
         await Media.collection.drop()
@@ -722,6 +732,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await Media2.collection.drop()
         await query.answer("ᴇᴠᴇʀʏᴛʜɪɴɢ'ꜱ ɢᴏɴᴇ")
         await query.message.edit('ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ ᴀʟʟ ɪɴᴅᴇxᴇᴅ ꜰɪʟᴇꜱ ✅')
+        return
+        return
 
     elif query.data.startswith("checksub"):
         try:
@@ -745,6 +757,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         except Exception as e:
             await log_error(client, f"❌ Error in checksub callback:\n\n{repr(e)}")
             logger.error(f"❌ Error in checksub callback:\n\n{repr(e)}")
+            return
+        return
 
     elif query.data.startswith("killfilesdq"):
         ident, keyword = query.data.split("#")
@@ -776,6 +790,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await query.message.edit_text(f'Error: {e}')
             else:
                 await query.message.edit_text(f"<b>ᴘʀᴏᴄᴇꜱꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ꜰᴏʀ ꜰɪʟᴇ ᴅᴇʟᴇᴛᴀᴛɪᴏɴ !\n\nꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ {str(deleted)} ꜰɪʟᴇꜱ ꜰʀᴏᴍ ᴅʙ ꜰᴏʀ ʏᴏᴜʀ ǫᴜᴇʀʏ {keyword}.</b>")
+                return
+        return
 
     elif query.data.startswith("opnsetgrp"):
         ident, grp_id = query.data.split("#")
@@ -799,6 +815,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 parse_mode=enums.ParseMode.HTML
             )
             await query.message.edit_reply_markup(reply_markup)
+            return
+        return
 
     elif query.data.startswith("opnsetpm"):
         ident, grp_id = query.data.split("#")
@@ -826,6 +844,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 parse_mode=enums.ParseMode.HTML,
                 reply_to_message_id=query.message.id
             )
+            return
+        return
 
     elif query.data.startswith("show_option"):
         ident, from_user = query.data.split("#")
@@ -848,6 +868,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.answer("ᴀᴠᴀɪʟᴀʙʟᴇ ᴏᴘᴛɪᴏɴs")
         else:
             await query.answer("ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ !", show_alert=True)
+            return
+        return
 
     elif query.data.startswith("uploaded"):
         ident, from_user = query.data.split("#")
@@ -877,6 +899,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 pass
         else:
             await query.answer("ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ !", show_alert=True)
+            return
+        return
 
     elif query.data.startswith("upalert"):
         ident, from_user = query.data.split("#")
@@ -885,6 +909,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.answer(f"{user.first_name},\n\nʏᴏᴜʀ ʀᴇǫᴜᴇꜱᴛ ɪꜱ ᴜᴘʟᴏᴀᴅᴇᴅ.", show_alert=True)
         else:
             await query.answer("ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ !", show_alert=True)
+            return
+        return
 
     elif query.data.startswith("unavailable"):
         ident, from_user = query.data.split("#")
@@ -912,6 +938,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 pass
         else:
             await query.answer("ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ !", show_alert=True)
+            return
+        return
 
     elif query.data.startswith("unalert"):
         ident, from_user = query.data.split("#")
@@ -920,6 +948,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.answer(f"{user.first_name},\n\nʏᴏᴜʀ ʀᴇǫᴜᴇꜱᴛ ɪꜱ ᴜɴᴀᴠᴀɪʟᴀʙʟᴇ.", show_alert=True)
         else:
             await query.answer("ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ !", show_alert=True)
+            return
+        return
 
     elif query.data.startswith("Not_Released"):
         ident, from_user = query.data.split("#")
@@ -946,6 +976,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 pass
         else:
             await query.answer("ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ !", show_alert=True)
+            return
+        return
 
     elif query.data.startswith("nralert"):
         ident, from_user = query.data.split("#")
@@ -954,6 +986,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.answer(f"{user.first_name},\n\nᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʀᴇʟᴇᴀꜱᴇᴅ ʏᴇᴛ.", show_alert=True)
         else:
             await query.answer("ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ !", show_alert=True)
+            return
+        return
 
     elif query.data.startswith("already_available"):
         ident, from_user = query.data.split("#")
@@ -983,6 +1017,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 pass
         else:
             await query.answer("ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ !", show_alert=True)
+            return
+        return
 
     elif query.data.startswith("alalert"):
         ident, from_user = query.data.split("#")
@@ -991,6 +1027,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.answer(f"{user.first_name},\n\nʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ɪs ᴀʟʀᴇᴀᴅʏ ᴀᴠᴀɪʟᴀʙʟᴇ.", show_alert=True)
         else:
             await query.answer("ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ !", show_alert=True)
+            return
+        return
 
     elif query.data.startswith("offtopic"):
         ident, from_user = query.data.split("#")
@@ -1018,6 +1056,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 pass
         else:
             await query.answer("ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ !", show_alert=True)
+            return
+        return
 
     elif query.data.startswith("offalert"):
         ident, from_user = query.data.split("#")
@@ -1026,6 +1066,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.answer(f"{user.first_name},\n\nᴛʜɪs ʀᴇǫᴜᴇsᴛ ɪsɴ'ᴛ ʀᴇʟᴀᴛᴇᴅ ᴛᴏ ᴏᴜʀ ᴄᴏɴᴛᴇɴᴛ.", show_alert=True)
         else:
             await query.answer("ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ !", show_alert=True)
+            return
+        return
 
     elif query.data.startswith("Wrong_Spelling"):
         ident, from_user = query.data.split("#")
@@ -1053,6 +1095,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 pass
         else:
             await query.answer("ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ !", show_alert=True)
+            return
+        return
 
     elif query.data.startswith("wsalert"):
         ident, from_user = query.data.split("#")
@@ -1061,6 +1105,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.answer(f"{user.first_name},\n\nʏᴏᴜʀ ʀᴇǫᴜᴇꜱᴛ ᴡᴀꜱ ʀᴇᴊᴇᴄᴛᴇᴅ ᴅᴜᴇ ᴛᴏ ᴡʀᴏɴɢ sᴘᴇʟʟɪɴɢ.", show_alert=True)
         else:
             await query.answer("ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ !", show_alert=True)
+            return
+        return
 
     elif query.data.startswith("Not_Available_In_Hindi"):
         ident, from_user = query.data.split("#")
@@ -1088,6 +1134,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 pass
         else:
             await query.answer("ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ !", show_alert=True)
+            return
+        return
 
     elif query.data.startswith("hnalert"):
         ident, from_user = query.data.split("#")
@@ -1096,6 +1144,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.answer(f"{user.first_name},\n\nᴛʜɪꜱ ɪꜱ ɴᴏᴛ ᴀᴠᴀɪʟᴀʙʟᴇ ɪɴ ʜɪɴᴅɪ.", show_alert=True)
         else:
             await query.answer("ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ !", show_alert=True)
+            return
+        return
 
     elif TechifyBots.startswith("generate_stream_link"):
         _, file_id = TechifyBots.split(":")
@@ -1135,6 +1185,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             print(e)
             await query.answer(f"⚠️ SOMETHING WENT WRONG STREAM LINK  \n\n{e}", show_alert=True)
             return
+            return
+        return
         
     elif query.data == "prestream":
         tb = await client.send_photo(
@@ -1145,6 +1197,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )
         await asyncio.sleep(DELETE_TIME)
         await tb.delete()
+        return
+        return
 
     elif query.data == "start":
         buttons = [[
@@ -1163,6 +1217,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             reply_markup=reply_markup
         )
         await query.answer(MSG_ALRT)
+        return
+        return
 
     elif query.data == "about":
         buttons = [[
@@ -1182,6 +1238,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             ),
             reply_markup=reply_markup
         )
+        return
+        return
 
     elif query.data == "controlpanel":
         buttons = [[
@@ -1201,6 +1259,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             ),
             reply_markup=reply_markup
         )
+        return
+        return
 
     elif query.data == "user_cmds":
         await query.message.edit_media(
@@ -1211,6 +1271,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             ),
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('⋞ ʙᴀᴄᴋ', callback_data='controlpanel')]])
         )
+        return
+        return
 
     elif query.data == "admin_cmds":
         if query.from_user.id not in ADMINS:
@@ -1224,6 +1286,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )
         await asyncio.sleep(DELETE_TIME)
         await msg.delete()
+        return
+        return
 
     elif query.data == "group_cmds":
         buttons = [[
@@ -1240,6 +1304,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             ),
             reply_markup=reply_markup
         )
+        return
+        return
 
     elif query.data == "dmca":
         await query.message.edit_media(
@@ -1250,6 +1316,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             ),
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⋞ ʙᴀᴄᴋ", callback_data="about")]])
         )
+        return
+        return
 
     elif query.data == "donate":
         buttons = [[
@@ -1266,6 +1334,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             ),
             reply_markup=reply_markup
         )
+        return
+        return
 
     elif query.data == "premium_info":
         btn = [[
@@ -1285,6 +1355,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             ),
             reply_markup=reply_markup
         )
+        return
+        return
 
     elif query.data == "buy_info":
         btn = [[
@@ -1302,6 +1374,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             ),
             reply_markup=reply_markup
         )
+        return
+        return
 
     elif query.data == "upi_info":
         btn = [[
@@ -1318,6 +1392,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             ),
             reply_markup=reply_markup
         )
+        return
+        return
 
     elif query.data == "star_info":
         btn = [
@@ -1335,9 +1411,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
             ),
             reply_markup=reply_markup
         )
+        return
+        return
 
     elif query.data == "ref_point":
         await query.answer(f'ʀᴇꜰᴇʀʀᴀʟ ᴘᴏɪɴᴛꜱ: {referdb.get_refer_points(query.from_user.id)}', show_alert=True)
+        return
+        return
 
     elif query.data == "free_trial":
         try:
@@ -1361,6 +1441,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 return await msg.delete()
         except Exception as e:
             logging.exception("Error in free_trial callback")
+            return
+        return
 
     elif query.data == "premium":
         btn = [[
@@ -1380,6 +1462,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             ),
             reply_markup=reply_markup
         )
+        return
+        return
 
     elif query.data.startswith("grp_pm"):
         _, grp_id = query.data.split("#")
@@ -1389,6 +1473,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         btn = await group_setting_buttons(int(grp_id))
         tb = await client.get_chat(int(grp_id))
         await query.message.edit(text=f"ᴄʜᴀɴɢᴇ ʏᴏᴜʀ ɢʀᴏᴜᴘ ꜱᴇᴛᴛɪɴɢꜱ ✅\nɢʀᴏᴜᴘ ɴᴀᴍᴇ - '{tb.title}'</b>⚙", reply_markup=InlineKeyboardMarkup(btn))
+        return
+        return
 
     elif query.data.startswith("removegrp"):
         user_id = query.from_user.id
@@ -1414,6 +1500,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 print(f"Error In PM Settings Button - {e}")
                 pass
         await query.edit_message_text("⚠️ ꜱᴇʟᴇᴄᴛ ᴛʜᴇ ɢʀᴏᴜᴘ ᴡʜᴏꜱᴇ ꜱᴇᴛᴛɪɴɢꜱ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴄʜᴀɴɢᴇ.\n\nɪꜰ ʏᴏᴜʀ ɢʀᴏᴜᴘ ɪꜱ ɴᴏᴛ ꜱʜᴏᴡɪɴɢ ʜᴇʀᴇ,\nᴜꜱᴇ /reload ɪɴ ᴛʜᴀᴛ ɢʀᴏᴜᴘ ᴀɴᴅ ɪᴛ ᴡɪʟʟ ᴀᴘᴘᴇᴀʀ ʜᴇʀᴇ.", reply_markup=InlineKeyboardMarkup(group_list))
+        return
+        return
 
     elif query.data.startswith("setgs"):
         ident, set_type, status, grp_id = query.data.split("#")
