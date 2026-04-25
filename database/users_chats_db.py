@@ -126,12 +126,25 @@ class Database:
         return b_users, b_chats
     
     async def add_chat(self, chat, title):
-        chat = self.new_group(chat, title)
-        await self.grp.insert_one(chat)
+        chat_data = self.new_group(chat, title)
+        await self.grp.update_one(
+            {'id': int(chat)},
+            {'$setOnInsert': chat_data},
+            upsert=True
+        )
     
     async def get_chat(self, chat):
-        chat = await self.grp.find_one({'id':int(chat)})
-        return False if not chat else chat.get('chat_status')
+        chat = await self.grp.find_one({'id': int(chat)})
+        if not chat:
+            return False
+        chat_status = chat.get('chat_status')
+        if not chat_status:
+            chat_status = dict(is_disabled=False, reason="")
+            await self.grp.update_one(
+                {'id': int(chat['id'])},
+                {'$set': {'chat_status': chat_status}}
+            )
+        return chat_status
     
     async def re_enable_chat(self, id):
         chat_status=dict(
