@@ -433,9 +433,11 @@ class Database:
     async def update_movie_update_status(self, bot_id, enable):
         await self.update_bot_setting(bot_id, 'UPDATE_NOTIFICATION', enable)
 
-    async def increment_file_count(self, user_id):
-        if await self.has_premium_access(user_id):
-            return
+    async def increment_file_count(self, user_id, is_premium=None):
+        if is_premium is None:
+            is_premium = await self.has_premium_access(user_id)
+        if is_premium:
+            return 0
         user = await self.col.find_one({"id": user_id})
         now = datetime.datetime.now(TIMEZONE)
         today_reset = now.replace(hour=5, minute=30, second=0, microsecond=0)
@@ -447,7 +449,7 @@ class Database:
                 {"id": user_id},
                 {"$set": {"file_count": 1, "file_reset_time": today_reset.isoformat()}}
             )
-            return
+            return 1
         last_reset = ensure_datetime(user.get("file_reset_time"))
         if not last_reset or last_reset < today_reset:
             new_count = 1
@@ -461,6 +463,7 @@ class Database:
                 {"id": user_id},
                 {"$set": {"file_count": new_count}}
             )
+        return new_count
 
     async def get_user_file_count(self, user_id):
         if await self.has_premium_access(user_id):
@@ -510,6 +513,26 @@ class Database:
         hours, remainder = divmod(remaining.seconds, 3600)
         minutes = remainder // 60
         return hours, minutes
+
+    async def get_limit_info(self, user_id, is_premium=None):
+        if is_premium is None:
+            is_premium = await self.has_premium_access(user_id)
+        if is_premium:
+            return False, 0, "∞", 0, 0
+        user = await self.col.find_one({"id": user_id})
+        used = 0
+        if user:
+            now = datetime.datetime.now(TIMEZONE)
+            today_reset = now.replace(hour=5, minute=30, second=0, microsecond=0)
+            if now < today_reset:
+                today_reset -= datetime.timedelta(days=1)
+            last_reset = ensure_datetime(user.get("file_reset_time"))
+            if last_reset and last_reset >= today_reset:
+                used = user.get("file_count", 0)
+
+        hours, minutes = await self.get_time_until_reset(user_id)
+        is_reached = used >= FILES_LIMIT if IS_FILE_LIMIT else False
+        return is_reached, used, FILES_LIMIT, hours, minutes
      
 db = Database(DATABASE_URI, DATABASE_NAME)    
 db2 = Database(DATABASE_URI2, DATABASE_NAME)

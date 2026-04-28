@@ -50,9 +50,8 @@ async def myplan(client, message):
             )
         else:
             if IS_FILE_LIMIT:
-                used = await db.get_user_file_count(user_id)
-                hours, minutes = await db.get_time_until_reset(user_id)
-                caption = (f"<b>{user},\n\n🧩 ʏᴏᴜ'ʀᴇ ᴄᴜʀʀᴇɴᴛʟʏ ᴏɴ ᴛʜᴇ ꜰʀᴇᴇ ᴘʟᴀɴ.\n\n📊 ᴛᴏᴅᴀʏ's ᴜsᴀɢᴇ : {used}/{FILES_LIMIT}\n⏱️ ʀᴇsᴇᴛ ɪɴ : {hours}h {minutes}m\n\n<blockquote>💎 <i>ᴜᴘɢʀᴀᴅᴇ ᴛᴏ ᴘʀᴇᴍɪᴜᴍ ꜰᴏʀ ᴜɴʟɪᴍɪᴛᴇᴅ ᴅᴏᴡɴʟᴏᴀᴅꜱ ᴀɴᴅ ᴇxᴄʟᴜsɪᴠᴇ ꜰᴇᴀᴛᴜʀᴇs.</i></blockquote></b>")
+                _, used, limit, hours, minutes = await db.get_limit_info(user_id)
+                caption = (f"<b>{user},\n\n🧩 ʏᴏᴜ'ʀᴇ ᴄᴜʀʀᴇɴᴛʟʏ ᴏɴ ᴛʜᴇ ꜰʀᴇᴇ ᴘʟᴀɴ.\n\n📊 ᴛᴏᴅᴀʏ's ᴜsᴀɢᴇ : {used}/{limit}\n⏱️ ʀᴇsᴇᴛ ɪɴ : {hours}h {minutes}m\n\n<blockquote>💎 <i>ᴜᴘɢʀᴀᴅᴇ ᴛᴏ ᴘʀᴇᴍɪᴜᴍ ꜰᴏʀ ᴜɴʟɪᴍɪᴛᴇᴅ ᴅᴏᴡɴʟᴏᴀᴅꜱ ᴀɴᴅ ᴇxᴄʟᴜsɪᴠᴇ ꜰᴇᴀᴛᴜʀᴇs.</i></blockquote></b>")
             else:
                 caption=(f"<b>{user},\n\nʏᴏᴜ ᴅᴏɴ'ᴛ ʜᴀᴠᴇ ᴀɴ ᴀᴄᴛɪᴠᴇ ᴘʀᴇᴍɪᴜᴍ ᴘʟᴀɴ.\n\nʙᴜʏ ᴏᴜʀ ꜱᴜʙꜱᴄʀɪᴘᴛɪᴏɴ ᴛᴏ ᴇɴᴊᴏʏ ᴘʀᴇᴍɪᴜᴍ ʙᴇɴᴇꜰɪᴛꜱ.</b>")
             await message.reply_photo(

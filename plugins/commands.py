@@ -296,16 +296,14 @@ async def start(client, message):
                 details= await get_file_details(file_id)
                 cover = details.get('cover', None)
             btn = await stream_buttons(user, file_id)
-            if IS_FILE_LIMIT and not is_premium:
-                used = await db.get_user_file_count(user)
-                hours, minutes = await db.get_time_until_reset(user)
-                if used >= FILES_LIMIT:
-                    return await message.reply_photo(
-                        photo=random.choice(PICS),
-                        caption = f"<b>{message.from_user.mention},\n\n🚫 ʏᴏᴜ’ᴠᴇ ʀᴇᴀᴄʜᴇᴅ ʏᴏᴜʀ ᴅᴀɪʟʏ ʟɪᴍɪᴛ ᴏꜰ {FILES_LIMIT} ꜰɪʟᴇꜱ.\n\n⏱️ ʏᴏᴜʀ ʟɪᴍɪᴛ ʀᴇꜱᴇᴛꜱ ɪɴ {hours}h {minutes}m\n\n💎 <i>ᴜᴘɢʀᴀᴅᴇ ᴛᴏ ᴘʀᴇᴍɪᴜᴍ ꜰᴏʀ ᴜɴʟɪᴍɪᴛᴇᴅ ᴀᴄᴄᴇꜱꜱ ᴀɴᴅ ᴇxᴄʟᴜsɪᴠᴇ ꜰᴇᴀᴛᴜʀᴇs.</i></b>",
-                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💎 ʙᴜʏ ᴘʀᴇᴍɪᴜᴍ 💎", callback_data='premium')]]),
-                        parse_mode=enums.ParseMode.HTML
-                    )
+            is_reached, used, limit, hours, minutes = await db.get_limit_info(user, is_premium)
+            if is_reached:
+                return await message.reply_photo(
+                    photo=random.choice(PICS),
+                    caption = f"<b>{message.from_user.mention},\n\n🚫 ʏᴏᴜ’ᴠᴇ ʀᴇᴀᴄʜᴇᴅ ʏᴏᴜʀ ᴅᴀɪʟʏ ʟɪᴍɪᴛ ᴏꜰ {limit} ꜰɪʟᴇꜱ.\n\n⏱️ ʏᴏᴜʀ ʟɪᴍɪᴛ ʀᴇꜱᴇᴛꜱ ɪɴ {hours}h {minutes}m\n\n💎 <i>ᴜᴘɢʀᴀᴅᴇ ᴛᴏ ᴘʀᴇᴍɪᴜᴍ ꜰᴏʀ ᴜɴʟɪᴍɪᴛᴇᴅ ᴀᴄᴄᴇꜱꜱ ᴀɴᴅ ᴇxᴄʟᴜsɪᴠᴇ ꜰᴇᴀᴛᴜʀᴇs.</i></b>",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💎 ʙᴜʏ ᴘʀᴇᴍɪᴜᴍ 💎", callback_data='premium')]]),
+                    parse_mode=enums.ParseMode.HTML
+                )
 
             msg = await client.send_cached_media(
                 chat_id=user,
@@ -327,8 +325,7 @@ async def start(client, message):
                 except:
                     return
             if IS_FILE_LIMIT and not is_premium:
-                await db.increment_file_count(user)
-                used = await db.get_user_file_count(user)
+                used = await db.increment_file_count(user, is_premium)
                 limit_info = f"\n\n📊 ʏᴏᴜ ʜᴀᴠᴇ ʀᴇᴄᴇɪᴠᴇᴅ {used}/{FILES_LIMIT} ꜰʀᴇᴇ ꜰɪʟᴇꜱ ᴛᴏᴅᴀʏ."
                 f_caption += limit_info
             await msg.edit_caption(f_caption, reply_markup=InlineKeyboardMarkup(btn))
@@ -343,16 +340,14 @@ async def start(client, message):
         return await message.reply('ɴᴏ ꜱᴜᴄʜ ꜰɪʟᴇ ᴇxɪꜱᴛꜱ !')
     
     files = files_[0]
-    if IS_FILE_LIMIT and not is_premium:
-        used = await db.get_user_file_count(user)
-        hours, minutes = await db.get_time_until_reset(user)
-        if used >= FILES_LIMIT:
-            return await message.reply_photo(
-                photo=random.choice(PICS),
-                caption = f"<b>{message.from_user.mention},\n\n🚫 ʏᴏᴜ’ᴠᴇ ʀᴇᴀᴄʜᴇᴅ ʏᴏᴜʀ ᴅᴀɪʟʏ ʟɪᴍɪᴛ ᴏꜰ {FILES_LIMIT} ꜰɪʟᴇꜱ.\n\n⏱️ ʏᴏᴜʀ ʟɪᴍɪᴛ ʀᴇꜱᴇᴛꜱ ɪɴ {hours}h {minutes}m\n\n<blockquote>💎 <i>ᴜᴘɢʀᴀᴅᴇ ᴛᴏ ᴘʀᴇᴍɪᴜᴍ ꜰᴏʀ ᴜɴʟɪᴍɪᴛᴇᴅ ᴀᴄᴄᴇꜱꜱ ᴀɴᴅ ᴇxᴄʟᴜsɪᴠᴇ ꜰᴇᴀᴛᴜʀᴇs.</i></blockquote></b>",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💎 ʙᴜʏ ᴘʀᴇᴍɪᴜᴍ 💎", callback_data='premium')]]),
-                parse_mode=enums.ParseMode.HTML
-            )
+    is_reached, used, limit, hours, minutes = await db.get_limit_info(user, is_premium)
+    if is_reached:
+        return await message.reply_photo(
+            photo=random.choice(PICS),
+            caption = f"<b>{message.from_user.mention},\n\n🚫 ʏᴏᴜ’ᴠᴇ ʀᴇᴀᴄʜᴇᴅ ʏᴏᴜʀ ᴅᴀɪʟʏ ʟɪᴍɪᴛ ᴏꜰ {limit} ꜰɪʟᴇꜱ.\n\n⏱️ ʏᴏᴜʀ ʟɪᴍɪᴛ ʀᴇꜱᴇᴛꜱ ɪɴ {hours}h {minutes}m\n\n<blockquote>💎 <i>ᴜᴘɢʀᴀᴅᴇ ᴛᴏ ᴘʀᴇᴍɪᴜᴍ ꜰᴏʀ ᴜɴʟɪᴍɪᴛᴇᴅ ᴀᴄᴄᴇꜱꜱ ᴀɴᴅ ᴇxᴄʟᴜsɪᴠᴇ ꜰᴇᴀᴛᴜʀᴇs.</i></blockquote></b>",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💎 ʙᴜʏ ᴘʀᴇᴍɪᴜᴍ 💎", callback_data='premium')]]),
+            parse_mode=enums.ParseMode.HTML
+        )
 
     file_quality = getattr(files, "quality", "")
     if QUALITY_LIMIT and not is_premium:
@@ -382,8 +377,7 @@ async def start(client, message):
     if f_caption is None:
         f_caption = clean_filename(files.file_name)
     if IS_FILE_LIMIT and not is_premium:
-        await db.increment_file_count(user)
-        used = await db.get_user_file_count(user)
+        used = await db.increment_file_count(user, is_premium)
         limit_info = f"\n\n📊 ʏᴏᴜ ʜᴀᴠᴇ ʀᴇᴄᴇɪᴠᴇᴅ {used}/{FILES_LIMIT} ꜰʀᴇᴇ ꜰɪʟᴇꜱ ᴛᴏᴅᴀʏ."
         f_caption += limit_info
     btn = await stream_buttons(user, file_id)
@@ -1210,7 +1204,7 @@ async def check_limit_command(_, message):
             user_id = int(args[1])
         except ValueError:
             return await message.reply_text("❌ ɪɴᴠᴀʟɪᴅ ᴜꜱᴇʀ ɪᴅ. ɪᴛ ᴍᴜꜱᴛ ʙᴇ ᴀ ɴᴜᴍʙᴇʀ.")
-        count = await db.get_user_file_count(user_id)
-        return await message.reply_text(f"📊 ᴜsᴇʀ <code>{user_id}</code> ʜᴀs ᴜsᴇᴅ {count}/{FILES_LIMIT} ꜰɪʟᴇs.")
+        is_reached, used, limit, hours, minutes = await db.get_limit_info(user_id)
+        return await message.reply_text(f"📊 ᴜsᴇʀ <code>{user_id}</code> ʜᴀs ᴜsᴇᴅ {used}/{limit} ꜰɪʟᴇs.")
     except Exception as e:
         await message.reply_text(f"❌ ᴇʀʀᴏʀ: <code>{e}</code>")

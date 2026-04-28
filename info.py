@@ -13,13 +13,16 @@ def is_enabled(value, default):
     else:
         return default
 
+IS_FILE_LIMIT = is_enabled(environ.get('IS_FILE_LIMIT', 'True'), True)
+FILES_LIMIT = int(environ.get("FILES_LIMIT", "15"))
+
 SESSION = environ.get('SESSION', 'media_search')
 API_ID = int(environ.get('API_ID', ''))
 API_HASH = environ.get('API_HASH', '')
 BOT_TOKEN = environ.get('BOT_TOKEN', "")
-USE_CAPTION_FILTER = bool(environ.get('USE_CAPTION_FILTER', False))
-INDEX_CAPTION = bool(environ.get('INDEX_CAPTION', False))
-COVER = bool(environ.get('COVER', False))
+USE_CAPTION_FILTER = is_enabled(environ.get('USE_CAPTION_FILTER', 'False'), False)
+INDEX_CAPTION = is_enabled(environ.get('INDEX_CAPTION', 'False'), False)
+COVER = is_enabled(environ.get('COVER', 'False'), False)
 PICS_URL = (environ.get('PICS', 'https://api.aniwallpaper.workers.dev/random?type=boy')).split() #random anime girl img each time from aniwallpaper (Experimental)
 PICS = (environ.get('PICS', 'https://i.ibb.co/PzZNZHF6/IMG-20251116-113905-254.jpg https://i.ibb.co/8npWSZ5T/pic.jpg')).split()  # Sample pic
 MELCOW_PHOTO = environ.get("MELCOW_PHOTO", "https://i.ibb.co/2769f1rF/photo-2025-09-03-14-48-34-7548400762112442372.jpg")
@@ -44,16 +47,16 @@ COLLECTION_NAME = environ.get('COLLECTION_NAME', 'telegram_files')
 MULTIPLE_DB = is_enabled(os.environ.get('MULTIPLE_DB', "False"), False)
 DATABASE_URI2 = environ.get('DATABASE_URI2', "")
 
-UPDATE_NOTIFICATION = bool(environ.get('UPDATE_NOTIFICATION', False))
+UPDATE_NOTIFICATION = is_enabled(environ.get('UPDATE_NOTIFICATION', 'False'), False)
 UPDATE_CHANNEL = int(environ.get('UPDATE_CHANNEL', '-1002706389673'))
-IMAGE_FETCH = bool(environ.get('IMAGE_FETCH', True))
-LINK_PREVIEW = bool(environ.get('LINK_PREVIEW', False))
-ABOVE_PREVIEW = bool(environ.get('ABOVE_PREVIEW', False))
+IMAGE_FETCH = is_enabled(environ.get('IMAGE_FETCH', 'True'), True)
+LINK_PREVIEW = is_enabled(environ.get('LINK_PREVIEW', 'False'), False)
+ABOVE_PREVIEW = is_enabled(environ.get('ABOVE_PREVIEW', 'False'), False)
 TMDB_API_KEY = environ.get('TMDB_API_KEY', '98f215cdc731a595c9d36dadca08a1aa')
-TMDB_POSTER = bool(environ.get('TMDB_POSTER', True))
-LANDSCAPE_POSTER = bool(environ.get('LANDSCAPE_POSTER', True))
+TMDB_POSTER = is_enabled(environ.get('TMDB_POSTER', 'True'), True)
+LANDSCAPE_POSTER = is_enabled(environ.get('LANDSCAPE_POSTER', 'True'), True)
 
-IS_VERIFY = is_enabled('IS_VERIFY', False)
+IS_VERIFY = is_enabled(environ.get('IS_VERIFY', 'False'), False)
 LOG_API_CHANNEL = int(environ.get('LOG_API_CHANNEL', '-1002681646366'))
 VERIFY_IMG = environ.get("VERIFY_IMG", "https://i.ibb.co/xqNtSMpS/photo-2025-09-18-15-24-38-7551450511015149572.jpg")
 TUTORIAL = environ.get("TUTORIAL", "https://t.me/")
@@ -76,7 +79,7 @@ DELETE_TIME = int(environ.get("DELETE_TIME", "300"))
 FILE_CAPTION = environ.get("FILE_CAPTION", f"{script.CAPTION}")
 IMDB_TEMPLATE = environ.get("IMDB_TEMPLATE", f"{script.IMDB_TEMPLATE_TXT}")
 MAX_LIST_ELM = int(environ.get("MAX_LIST_ELM") or 10) or None # Maximum number of elements in a list (default: 10, set 0 for no limit)
-NO_RESULTS_MSG = bool(environ.get("NO_RESULTS_MSG", True))
+NO_RESULTS_MSG = is_enabled(environ.get("NO_RESULTS_MSG", 'True'), True)
 P_TTI_SHOW_OFF = is_enabled((environ.get('P_TTI_SHOW_OFF', "False")), False)
 IMDB = is_enabled((environ.get('IMDB', "False")), False)
 TMDB_ON_SEARCH = is_enabled((environ.get('TMDB_ON_SEARCH', "False")), False)
@@ -86,11 +89,11 @@ LONG_IMDB_DESCRIPTION = is_enabled(environ.get("LONG_IMDB_DESCRIPTION", "False")
 SPELL_CHECK_REPLY = is_enabled(environ.get("SPELL_CHECK_REPLY", "True"), True)
 MELCOW_NEW_USERS = is_enabled((environ.get('MELCOW_NEW_USERS', "False")), False)
 PROTECT_CONTENT = is_enabled((environ.get('PROTECT_CONTENT', "False")), False)
-PM_SEARCH = bool(environ.get('PM_SEARCH', False))
-EMOJI_MODE = bool(environ.get('EMOJI_MODE', True))
+PM_SEARCH = is_enabled(environ.get('PM_SEARCH', 'False'), False)
+EMOJI_MODE = is_enabled(environ.get('EMOJI_MODE', 'True'), True)
 BUTTON_MODE = is_enabled((environ.get('BUTTON_MODE', "False")), False)
-STREAM_MODE = bool(environ.get('STREAM_MODE', True))
-PREMIUM_STREAM_MODE = bool(environ.get('PREMIUM_STREAM_MODE', False))
+STREAM_MODE = is_enabled(environ.get('STREAM_MODE', 'True'), True)
+PREMIUM_STREAM_MODE = is_enabled(environ.get('PREMIUM_STREAM_MODE', 'False'), False)
 
 LANGUAGES = {"ᴛᴀᴍɪʟ":"tam","ᴛᴇʟᴜɢᴜ":"tel","ᴇɴɢʟɪsʜ":"eng","ʜɪɴᴅɪ":"hin","ᴊᴀᴘᴀɴᴇsᴇ":"jap"}
 QUALITIES = ["360P", "480P", "720P", "1080P", "2160p"]
@@ -100,13 +103,11 @@ REACTIONS = ["🤝", "😇", "🤗", "😍", "👍", "🎅", "😐", "🥰", "�
 STAR_PREMIUM_PLANS = {10: "7day", 20: "15day", 40: "1month", 55: "45day", 75: "60day"}
 BAD_WORDS = {"PrivateMovieZ", "toonworld4all", "themoviesboss", "1tamilmv", "tamilblasters", "1tamilblasters", "skymovieshd", "extraflix", "hdm2", "moviesmod", "hdhub4u", "mkvcinemas", "primefix", "join", "www", "villa", "tg", "original"}
 
-IS_FILE_LIMIT = bool(environ.get('IS_FILE_LIMIT', True)) 
-FILES_LIMIT = int(environ.get("FILES_LIMIT", "15"))
-QUALITY_LIMIT = bool(environ.get('QUALITY_LIMIT', False)) 
+QUALITY_LIMIT = is_enabled(environ.get('QUALITY_LIMIT', 'False'), False)
 FREE_QUALITIES = ["360p", "480p"]
 
 PORT = int(environ.get("PORT", "8080"))
-NO_PORT = bool(environ.get('NO_PORT', False))
+NO_PORT = is_enabled(environ.get('NO_PORT', 'False'), False)
 APP_NAME = None
 if 'DYNO' in environ:
     ON_HEROKU = True
@@ -124,7 +125,7 @@ if 'DYNO' in environ:
     APP_NAME = str(getenv('APP_NAME'))
 else:
     ON_HEROKU = False
-HAS_SSL = bool(getenv('HAS_SSL', True))
+HAS_SSL = is_enabled(getenv('HAS_SSL', 'True'), True)
 if HAS_SSL:
     URL = "https://{}/".format(FQDN)
 else:
