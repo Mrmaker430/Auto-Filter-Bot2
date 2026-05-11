@@ -13,7 +13,7 @@ def is_enabled(value, default):
     else:
         return default
 
-SESSION = environ.get('SESSION', 'techifybots')
+SESSION = environ.get('SESSION', 'media_search')
 API_ID = int(environ.get('API_ID', ''))
 API_HASH = environ.get('API_HASH', '')
 BOT_TOKEN = environ.get('BOT_TOKEN', "")
@@ -23,10 +23,10 @@ COVER = bool(environ.get('COVER', False))
 PICS = (environ.get('PICS', 'https://i.ibb.co/PzZNZHF6/IMG-20251116-113905-254.jpg https://i.ibb.co/8npWSZ5T/pic.jpg')).split()
 MELCOW_PHOTO = environ.get("MELCOW_PHOTO", "https://i.ibb.co/2769f1rF/photo-2025-09-03-14-48-34-7548400762112442372.jpg")
 ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '1255023013').split()]
-CHANNELS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('CHANNELS', '').split()]
-LOG_CHANNEL = int(environ.get('LOG_CHANNEL', ''))
-BIN_CHANNEL = int(environ.get('BIN_CHANNEL', ''))
-PREMIUM_LOGS = int(environ.get('PREMIUM_LOGS', ''))
+CHANNELS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('CHANNELS', '-1002250750580').split()]
+LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002732527335'))
+BIN_CHANNEL = int(environ.get('BIN_CHANNEL', '-1002732527335'))
+PREMIUM_LOGS = int(environ.get('PREMIUM_LOGS', '-1002732527335'))
 DELETE_CHANNELS = [int(dch) if id_pattern.search(dch) else dch for dch in environ.get('DELETE_CHANNELS', '').split()]
 AUTH_CHANNELS = [int(ch) for ch in environ.get("AUTH_CHANNELS", "").split() if ch and id_pattern.match(ch)]
 AUTH_REQ_CHANNELS = [int(ch) for ch in environ.get("AUTH_REQ_CHANNELS", "").split() if ch and id_pattern.match(ch)]
@@ -38,8 +38,8 @@ CHANNEL_LINK = environ.get('CHANNEL_LINK', 'https://telegram.me/Techifybots')
 GROUP_LINK = environ.get('GROUP_LINK', 'https://telegram.me/TechifySupport')
 
 DATABASE_URI = environ.get('DATABASE_URI', "")
-DATABASE_NAME = environ.get('DATABASE_NAME', "filter")
-COLLECTION_NAME = environ.get('COLLECTION_NAME', 'files')
+DATABASE_NAME = environ.get('DATABASE_NAME', "Cluster0")
+COLLECTION_NAME = environ.get('COLLECTION_NAME', 'Telegram_files')
 MULTIPLE_DB = is_enabled(os.environ.get('MULTIPLE_DB', "False"), False)
 DATABASE_URI2 = environ.get('DATABASE_URI2', "")
 
@@ -53,11 +53,11 @@ TMDB_POSTER = bool(environ.get('TMDB_POSTER', True))
 LANDSCAPE_POSTER = bool(environ.get('LANDSCAPE_POSTER', True))
 
 IS_VERIFY = is_enabled('IS_VERIFY', False)
-LOG_API_CHANNEL = int(environ.get('LOG_API_CHANNEL', ''))
+LOG_API_CHANNEL = int(environ.get('LOG_API_CHANNEL', '-1002732527335'))
 VERIFY_IMG = environ.get("VERIFY_IMG", "https://i.ibb.co/xqNtSMpS/photo-2025-09-18-15-24-38-7551450511015149572.jpg")
-TUTORIAL = environ.get("TUTORIAL", "https://t.me/TechifyBots")
-TUTORIAL_2 = environ.get("TUTORIAL_2", "https://t.me/TechifyBots")
-TUTORIAL_3 = environ.get("TUTORIAL_3", "https://t.me/TechifyBots")
+TUTORIAL = environ.get("TUTORIAL", "https://t.me/")
+TUTORIAL_2 = environ.get("TUTORIAL_2", "https://t.me/")
+TUTORIAL_3 = environ.get("TUTORIAL_3", "https://t.me/")
 SHORTENER_API = environ.get("SHORTENER_API", "a7ac9b3012c67d7491414cf272d82593c75f6cbb")
 SHORTENER_WEBSITE = environ.get("SHORTENER_WEBSITE", "omegalinks.in")
 SHORTENER_API2 = environ.get("SHORTENER_API2", "a7ac9b3012c67d7491414cf272d82593c75f6cbb")
@@ -69,7 +69,7 @@ THREE_VERIFY_GAP = int(environ.get('THREE_VERIFY_GAP', "54000"))
 
 FAST_MODE = is_enabled(environ.get('FAST_MODE', "False"), False)
 MAX_BTN = is_enabled((environ.get('MAX_BTN', "True")), True)
-MAX_BTNS = environ.get("MAX_BTNS", "5")
+MAX_BTNS = environ.get("MAX_BTNS", "8")
 MSG_ALRT = environ.get('MSG_ALRT', '𝖲𝗁𝖺𝗋𝖾 & 𝖲𝗎𝗉𝗉𝗈𝗋𝗍 𝖬𝖾 ♥️')
 DELETE_TIME = int(environ.get("DELETE_TIME", "300"))
 FILE_CAPTION = environ.get("FILE_CAPTION", f"{script.CAPTION}")
@@ -101,7 +101,7 @@ STAR_PREMIUM_PLANS = {10: "7day", 20: "15day", 40: "1month", 55: "45day", 75: "6
 BAD_WORDS = {"PrivateMovieZ", "toonworld4all", "themoviesboss", "1tamilmv", "tamilblasters", "1tamilblasters", "skymovieshd", "extraflix", "hdm2", "moviesmod", "hdhub4u", "mkvcinemas", "primefix", "join", "www", "villa", "tg", "original"}
 
 IS_FILE_LIMIT = bool(environ.get('IS_FILE_LIMIT', True)) 
-FILES_LIMIT = int(environ.get("FILES_LIMIT", "48"))
+FILES_LIMIT = int(environ.get("FILES_LIMIT", "15"))
 QUALITY_LIMIT = bool(environ.get('QUALITY_LIMIT', False)) 
 FREE_QUALITIES = ["360p", "480p"]
 
