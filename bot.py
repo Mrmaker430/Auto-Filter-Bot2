@@ -14,6 +14,7 @@ from aiohttp import web
 from PIL import Image
 Image.MAX_IMAGE_PIXELS = 500_000_000
 from database.ia_filterdb import Media, Media2
+from pymongo.errors import OperationFailure
 from database.users_chats_db import db
 from info import *
 from utils import temp
@@ -34,6 +35,34 @@ logging.getLogger("aiohttp").setLevel(logging.ERROR)
 logging.getLogger("aiohttp.web").setLevel(logging.ERROR)
 logging.getLogger("pymongo").setLevel(logging.WARNING)
 
+
+async def ensure_media_indexes(media_model):
+    """Ensure umongo indexes without crashing on existing text-index variants.
+
+    MongoDB permits only one text index per collection. Existing deployments may
+    already have a compatible text index with caption support, so tolerate the
+    resulting IndexOptionsConflict instead of aborting startup.
+    """
+    try:
+        await media_model.ensure_indexes()
+    except OperationFailure as exc:
+        if exc.code != 85:
+            raise
+
+        indexes = await media_model.collection.index_information()
+        has_text_index = any(
+            any(index_type == "text" for _, index_type in index.get("key", []))
+            for index in indexes.values()
+        )
+        if not has_text_index:
+            raise
+
+        logging.warning(
+            "Skipping %s text index creation because an existing text index is present: %s",
+            media_model.__name__,
+            ", ".join(indexes.keys()),
+        )
+        
 botStartTime = time.time()
 
 async def web_server():
@@ -138,9 +167,9 @@ async def techifybots_start():
     b_users, b_chats = await db.get_banned()
     temp.BANNED_USERS = b_users
     temp.BANNED_CHATS = b_chats
-    await Media.ensure_indexes()
+    await ensure_media_indexes(Media)
     if MULTIPLE_DB:
-        await Media2.ensure_indexes()
+        await ensure_media_indexes(Media2)
         print("Multiple Database Mode On. Now Files Will Be Save In Second DB If First DB Is Full")
     else:
         print("Single DB Mode On ! Files Will Be Save In First Database")
