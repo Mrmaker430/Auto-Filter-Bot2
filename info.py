@@ -28,8 +28,8 @@ LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002681646366'))
 BIN_CHANNEL = int(environ.get('BIN_CHANNEL', '-1002681646366'))
 PREMIUM_LOGS = int(environ.get('PREMIUM_LOGS', '-1002681646366'))
 DELETE_CHANNELS = [int(dch) if id_pattern.search(dch) else dch for dch in environ.get('DELETE_CHANNELS', '-1002681646366').split()]
-AUTH_CHANNELS = [int(ch) for ch in environ.get("AUTH_CHANNELS", "-1002251927740").split() if ch and id_pattern.match(ch)]
-AUTH_REQ_CHANNELS = [int(ch) for ch in environ.get("AUTH_REQ_CHANNELS", "-1002706389673").split() if ch and id_pattern.match(ch)]
+AUTH_CHANNELS = [int(ch) for ch in environ.get("AUTH_CHANNELS", "-1002097884361").split() if ch and id_pattern.match(ch)]
+AUTH_REQ_CHANNELS = [int(ch) for ch in environ.get("AUTH_REQ_CHANNELS", "-1003784139938").split() if ch and id_pattern.match(ch)]
 REQST_CHANNEL = int(ch) if (ch := environ.get("REQST_CHANNEL", "-1002706389673")) and id_pattern.search(ch) else None
 SUPPORT_CHAT_ID = int(ch) if (ch := environ.get("SUPPORT_CHAT_ID", "-1002706389673")) and id_pattern.search(ch) else None
 
@@ -44,7 +44,7 @@ MULTIPLE_DB = is_enabled(os.environ.get('MULTIPLE_DB', "False"), False)
 DATABASE_URI2 = environ.get('DATABASE_URI2', "")
 
 UPDATE_NOTIFICATION = bool(environ.get('UPDATE_NOTIFICATION', False))
-UPDATE_CHANNEL = int(environ.get('UPDATE_CHANNEL', '-1002706389673'))
+UPDATE_CHANNEL = int(environ.get('UPDATE_CHANNEL', '-1003784139938'))
 IMAGE_FETCH = bool(environ.get('IMAGE_FETCH', True))
 LINK_PREVIEW = bool(environ.get('LINK_PREVIEW', False))
 ABOVE_PREVIEW = bool(environ.get('ABOVE_PREVIEW', False))
@@ -116,7 +116,7 @@ BAD_WORDS = {"PrivateMovieZ",
              "original"}
 
 IS_FILE_LIMIT = bool(environ.get('IS_FILE_LIMIT', True)) 
-FILES_LIMIT = int(environ.get("FILES_LIMIT", "15"))
+FILES_LIMIT = int(environ.get("FILES_LIMIT", "8"))
 QUALITY_LIMIT = bool(environ.get('QUALITY_LIMIT', False)) 
 FREE_QUALITIES = ["360p", "480p"]
 
