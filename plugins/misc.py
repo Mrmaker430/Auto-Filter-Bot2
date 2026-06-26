@@ -265,6 +265,22 @@ async def info_handler(client, message):
     if sent_msg:
         await asyncio.sleep(DELETE_TIME)
         await client.delete_messages(message.chat.id,[message.id,sent_msg.id])
+      
+def _imdb_movie_value(movie, key, default="N/A"):
+    if isinstance(movie, dict):
+        return movie.get(key, default)
+    return getattr(movie, key, default) or default
+
+
+def _imdb_movie_id(movie):
+    movie_id = _imdb_movie_value(movie, "imdb_id", None) or _imdb_movie_value(movie, "movieID", None)
+    if not movie_id:
+        return None
+    movie_id = str(movie_id)
+    return movie_id if movie_id.startswith("tt") else f"tt{movie_id}"
+
+
+
 
 @Client.on_message(filters.private & filters.command("imdb"))
 async def imdb_search(client, message):
@@ -275,35 +291,50 @@ async def imdb_search(client, message):
     else:
         searching = await message.reply_text("𝘚𝘦𝘢𝘳𝘤𝘩𝘪𝘯𝘨 𝘰𝘯 𝘐𝘔𝘋𝘣...", quote=True)
         msgs.append(searching.id)
-        _, title = message.text.split(None, 1)
-        movies = await get_poster(title, bulk=True)
-        if not movies:
-            nores = await message.reply_text("❌ 𝖭𝗈 𝗋𝖾𝗌𝗎𝗅𝗍𝗌 𝖿𝗈𝗎𝗇𝖽 𝗈𝗇 𝖨𝖬𝖣𝖻.", quote=True)
-            msgs.append(nores.id)
-        else:
-            await searching.delete()
-            btn = [[InlineKeyboardButton(text=f"{movie.get('title')} - {movie.get('year')}", callback_data=f"imdb#{movie.movieID}")] for movie in movies]
-            result = await message.reply_text("🎬 𝖧𝖾𝗋𝖾’𝗌 𝗐𝗁𝖺𝗍 𝗂 𝖿𝗈𝗎𝗇𝖽 𝗈𝗇 𝖨𝖬𝖣𝖻:", reply_markup=InlineKeyboardMarkup(btn))
-            msgs.append(result.id)
+        try:
+            _, title = message.text.split(None, 1)
+            movies = await get_poster(title, bulk=True)
+            if not movies:
+                await searching.edit_text("❌ 𝖭𝗈 𝗋𝖾𝗌𝗎𝗅𝗍𝗌 𝖿𝗈𝗎𝗇𝖽 𝗈𝗇 𝖨𝖬𝖣𝖻.")
+                return
+            buttons = []
+            for movie in movies:
+                movie_id = _imdb_movie_id(movie)
+                if not movie_id:
+                    continue
+                title_text = _imdb_movie_value(movie, "title")
+                year_text = _imdb_movie_value(movie, "year")
+                buttons.append([InlineKeyboardButton(text=f"{title_text} - {year_text}", callback_data=f"imdb#{movie_id}")])
+            if not buttons:
+                await searching.edit_text("❌ 𝖭𝗈 usable 𝖨𝖬𝖣𝖻 𝗋𝖾𝗌𝗎𝗅𝗍𝗌 𝖿𝗈𝗎𝗇𝖽.")
+                return
+            await searching.edit_text("🎬 𝖧𝖾𝗋𝖾’𝗌 𝗐𝗁𝖺𝗍 𝗂 𝖿𝗈𝗎𝗇𝖽 𝗈𝗇 𝖨𝖬𝖣𝖻:", reply_markup=InlineKeyboardMarkup(buttons))
+            return
+        except Exception as e:
+            logger.exception("IMDb search failed")
+            await searching.edit_text(f"❌ 𝖥𝖺𝗂𝗅𝖾𝖽 𝗍𝗈 𝗌𝖾𝖺𝗋𝖼𝗁 𝖨𝖬𝖣𝖻: `{e}`")
+            return
     await asyncio.sleep(DELETE_TIME)
     await client.delete_messages(message.chat.id, msgs)
 
-@Client.on_callback_query(filters.regex("^imdb"))
+@Client.on_callback_query(filters.regex("^imdb#"))
 async def imdb_callback(client: Client, query: CallbackQuery):
-    _, movie = query.data.split("#")
-    imdb = await get_poster(query=movie, id=True)
-    if not imdb:
-        return await query.message.edit_text("❌ 𝖭𝗈 𝗋𝖾𝗌𝗎𝗅𝗍𝗌 𝖿𝗈𝗎𝗇𝖽.")
-    btn = [[InlineKeyboardButton(text=f"{imdb.get('title')}", url=imdb["url"])]]
-    caption = f"<blockquote><b><a href='{imdb['url']}'>{imdb['title']}</a></b></blockquote>\n\n<b>📆 ʏᴇᴀʀ:</b> {imdb['year']}\n<b>🌟 ʀᴀᴛɪɴɢ:</b> {imdb['rating']}/10\n<b>🎭 ɢᴇɴʀᴇꜱ:</b> {imdb.get('genres', 'N/A')}\n\n<blockquote><b>📝 ᴘʟᴏᴛ:</b> {imdb['plot']}</blockquote>"
-    await query.message.delete()
-    try:
-        msg = await query.message.reply_photo(photo=imdb["poster"], caption=caption, reply_markup=InlineKeyboardMarkup(btn)) if imdb.get("poster") else await query.message.reply_text(caption, reply_markup=InlineKeyboardMarkup(btn))
-    except Exception:
-        msg = await query.message.reply_text(caption, reply_markup=InlineKeyboardMarkup(btn))
-    await query.answer()
-    await asyncio.sleep(DELETE_TIME)
-    await client.delete_messages(msg.chat.id, [msg.id])
+    _, movie = query.data.split("#", 1)
+        await query.answer("Fetching IMDb details...")
+        imdb = await get_poster(query=movie, id=True)
+        if not imdb:
+            return await query.message.edit_text("❌ 𝖭𝗈 𝗋𝖾𝗌𝗎𝗅𝗍𝗌 𝖿𝗈𝗎𝗇𝖽.")
+        btn = [[InlineKeyboardButton(text=f"{imdb.get('title')}", url=imdb["url"])]]
+        caption = f"<blockquote><b><a href='{imdb['url']}'>{imdb['title']}</a></b></blockquote>\n\n<b>📆 ʏᴇᴀʀ:</b> {imdb['year']}\n<b>🌟 ʀᴀᴛɪɴɢ:</b> {imdb['rating']}/10\n<b>🎭 ɢᴇɴʀᴇꜱ:</b> {imdb.get('genres', 'N/A')}\n\n<blockquote><b>📝 ᴘʟᴏᴛ:</b> {imdb['plot']}</blockquote>"
+        await query.message.delete()
+        try:
+            await query.message.reply_photo(photo=imdb["poster"], caption=caption, reply_markup=InlineKeyboardMarkup(btn)) if imdb.get("poster") else await query.message.reply_text(caption, reply_markup=InlineKeyboardMarkup(btn))
+        except Exception:
+            await query.message.reply_text(caption, reply_markup=InlineKeyboardMarkup(btn))
+    except Exception as e:
+        logger.exception("IMDb callback failed")
+        await query.answer("IMDb lookup failed", show_alert=True)
+        await query.message.edit_text(f"❌ 𝖥𝖺𝗂𝗅𝖾𝖽 𝗍𝗈 𝖿𝖾𝗍𝖼𝗁 𝖨𝖬𝖣𝖻 𝖽𝖾𝗍𝖺𝗂𝗅𝗌: `{e}`")
         
 @Client.on_message(filters.private & filters.command("movies"))
 async def movies(client, message):
