@@ -34,8 +34,8 @@ REQST_CHANNEL = int(ch) if (ch := environ.get("REQST_CHANNEL", "-1002706389673")
 SUPPORT_CHAT_ID = int(ch) if (ch := environ.get("SUPPORT_CHAT_ID", "-1002706389673")) and id_pattern.search(ch) else None
 
 OWNER = int(os.environ.get("OWNER", "1773034985"))
-CHANNEL_LINK = environ.get('CHANNEL_LINK', 'https://telegram.me/')
-GROUP_LINK = environ.get('GROUP_LINK', 'https://t.me/movie_magic09')
+CHANNEL_LINK = environ.get('CHANNEL_LINK', 'https://t.me/cholochhitro')
+GROUP_LINK = environ.get('GROUP_LINK', 'https://t.me/+ICKFeE2JeI45YTU1')
 
 DATABASE_URI = environ.get('DATABASE_URI', "")
 DATABASE_NAME = environ.get('DATABASE_NAME', "Cluster0")
