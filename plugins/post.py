@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 post_sessions = {}
 
 USE_DEFAULT_BTN = True
-DEFAULT_BTN_LINK = "https://telegram.me/Techifybots"
-DEFAULT_WATERMARK = "<blockquote><b><i>ʙʏ - @TechifyBots</i></b></blockquote>"
+DEFAULT_BTN_LINK = "https://t.me/cholochhitro"
+DEFAULT_WATERMARK = "<blockquote><b><i>ʙʏ - @cholochhitro</i></b></blockquote>"
 LANGUAGES_FORMAT = "<b>‣ ᴀᴜᴅɪᴏ :</b> {langs}"
 SUBTITLES_FORMAT = "<b>‣ sᴜʙᴛɪᴛʟᴇ :</b> {subs}"
 RESOLUTIONS_FORMAT = "<b>‣ ǫᴜᴀʟɪᴛʏ :</b> {resolutions}"
