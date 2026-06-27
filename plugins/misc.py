@@ -280,8 +280,6 @@ def _imdb_movie_id(movie):
     return movie_id if movie_id.startswith("tt") else f"tt{movie_id}"
 
 
-
-
 @Client.on_message(filters.private & filters.command("imdb"))
 async def imdb_search(client, message):
     msgs = [message.id]
@@ -317,18 +315,36 @@ async def imdb_search(client, message):
     await asyncio.sleep(DELETE_TIME)
     await client.delete_messages(message.chat.id, msgs)
 
-@Client.on_callback_query(filters.regex("^imdb#"))
+@Client.on_callback_query(filters.regex("^imdb#.+"))
 async def imdb_callback(client: Client, query: CallbackQuery):
-    _, movie = query.data.split("#", 1)
+        try:
+            _, movie = query.data.split("#", 1)
         await query.answer("Fetching IMDb details...")
+
         imdb = await get_poster(query=movie, id=True)
         if not imdb:
-            return await query.message.edit_text("❌ 𝖭𝗈 𝗋𝖾𝗌𝗎𝗅𝗍𝗌 𝖿𝗈𝗎𝗇𝖽.")
+            await query.message.edit_text("❌ 𝖭𝗈 𝗋𝖾𝗌𝗎𝗅𝗍𝗌 𝖿𝗈𝗎𝗇𝖽.")
+            return
+
         btn = [[InlineKeyboardButton(text=f"{imdb.get('title')}", url=imdb["url"])]]
-        caption = f"<blockquote><b><a href='{imdb['url']}'>{imdb['title']}</a></b></blockquote>\n\n<b>📆 ʏᴇᴀʀ:</b> {imdb['year']}\n<b>🌟 ʀᴀᴛɪɴɢ:</b> {imdb['rating']}/10\n<b>🎭 ɢᴇɴʀᴇꜱ:</b> {imdb.get('genres', 'N/A')}\n\n<blockquote><b>📝 ᴘʟᴏᴛ:</b> {imdb['plot']}</blockquote>"
+        caption = (
+            f"<blockquote><b><a href='{imdb['url']}'>{imdb['title']}</a></b></blockquote>\n\n"
+            f"<b>📆 ʏᴇᴀʀ:</b> {imdb['year']}\n"
+            f"<b>🌟 ʀᴀᴛɪɴɢ:</b> {imdb['rating']}/10\n"
+            f"<b>🎭 ɢᴇɴʀᴇꜱ:</b> {imdb.get('genres', 'N/A')}\n\n"
+            f"<blockquote><b>📝 ᴘʟᴏᴛ:</b> {imdb['plot']}</blockquote>"
+        )
+
         await query.message.delete()
         try:
-            await query.message.reply_photo(photo=imdb["poster"], caption=caption, reply_markup=InlineKeyboardMarkup(btn)) if imdb.get("poster") else await query.message.reply_text(caption, reply_markup=InlineKeyboardMarkup(btn))
+            if imdb.get("poster"):
+                await query.message.reply_photo(
+                    photo=imdb["poster"],
+                    caption=caption,
+                    reply_markup=InlineKeyboardMarkup(btn),
+                )
+            else:
+                await query.message.reply_text(caption, reply_markup=InlineKeyboardMarkup(btn))
         except Exception:
             await query.message.reply_text(caption, reply_markup=InlineKeyboardMarkup(btn))
     except Exception as e:
