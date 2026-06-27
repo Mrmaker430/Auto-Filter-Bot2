@@ -142,9 +142,9 @@ class script(object):
 
 <b>🍁 ʙʏ : <a href="https://t.me/cholochhitro">[ ᴄʜᴏʟᴏᴄʜʜɪᴛʀᴏ ]</a></b>"""
 
-    UPDATE_NOTIFY_TXT = """</b><a href={poster_url}>📥</a><a href={imdb_url}>New {tag} Added</a></b>
+    UPDATE_NOTIFY_TXT = """<blockquote>📫 𝖭𝖤𝖶 𝖥𝖨𝖫𝖤 𝖠𝖣𝖣𝖤𝖣 ✅</blockquote>
 
-<blockquote>✨ ᴛɪᴛʟᴇ : <code>{filename} {year}</code>
+✨ ᴛɪᴛʟᴇ : <b><a href={imdb_url}>{filename} {year}</a></b> <i>{tag}</i>
 
 🎭 ɢᴇɴʀᴇs : <b>{genres}</b>
 📺 ᴏᴛᴛ : <b>{ott}</b>
@@ -152,9 +152,8 @@ class script(object):
 🎧 ᴀᴜᴅɪᴏ : <b>{language}</b>
 🔥 ʀᴀᴛɪɴɢ : <b>{rating}</b>
 {episodes}
-</blockquote>
 
-🔍 <b>sᴇᴀʀᴄʜ →</b> {search_link}"""
+"""
 
     IMDB_TEMPLATE_TXT = """<b><a href={url}>{title} (<a href={url}/releaseinfo>{year}</a>)
 
