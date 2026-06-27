@@ -317,8 +317,8 @@ async def imdb_search(client, message):
 
 @Client.on_callback_query(filters.regex("^imdb#.+"))
 async def imdb_callback(client: Client, query: CallbackQuery):
-        try:
-            _, movie = query.data.split("#", 1)
+    try:
+        _, movie = query.data.split("#", 1)
         await query.answer("Fetching IMDb details...")
 
         imdb = await get_poster(query=movie, id=True)
