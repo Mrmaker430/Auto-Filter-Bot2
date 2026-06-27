@@ -2320,7 +2320,7 @@
       showToast('Info', 'Download will start shortly...');
       const player = document.querySelector('.player');
       const link = document.createElement('a');
-      link.href = player.src;
+      link.href = '{{download_url}}';
       link.download = '{{file_name}}';
       link.click();
     }
