@@ -1113,7 +1113,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             log_msg = await client.send_cached_media(chat_id=BIN_CHANNEL, file_id=file_id)
             fileName = get_name(log_msg)
             stream = f"{URL}watch/{str(log_msg.id)}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}"
-            download = f"{URL}{str(log_msg.id)}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}"
+            download = f"{URL}download/{str(log_msg.id)}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}"
             xo = await query.message.reply_text(f'❤‍🔥')
             await asyncio.sleep(1)
             await xo.delete()
