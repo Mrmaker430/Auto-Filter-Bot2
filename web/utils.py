@@ -85,6 +85,10 @@ async def render_page(id, secure_hash, src=None):
         URL,
         f"{id}/{urllib.parse.quote_plus(file_data.file_name)}?hash={secure_hash}",
     )
+    download_url = urllib.parse.urljoin(
+        URL,
+        f"download/{id}/{urllib.parse.quote_plus(file_data.file_name)}?hash={secure_hash}",
+    )
     tag = file_data.mime_type.split("/")[0].strip()
     file_size = humanbytes(file_data.file_size)
     template_file = "web/techifybots.html"
@@ -99,6 +103,7 @@ async def render_page(id, secure_hash, src=None):
     return template.render(
         file_name=file_name,
         file_url=src,
+        download_url=download_url,
         file_size=file_size,
         file_unique_id=file_data.unique_id,
     )
