@@ -144,15 +144,14 @@ class script(object):
 
     UPDATE_NOTIFY_TXT = """<blockquote>📫 𝖭𝖤𝖶 𝖥𝖨𝖫𝖤 𝖠𝖣𝖣𝖤𝖣 ✅</blockquote>
 
-✨ ᴛɪᴛʟᴇ : <b><a href={imdb_url}>{filename} {year}</a></b> <i>{tag}</i>
-
-🎭 ɢᴇɴʀᴇs : <b>{genres}</b>
-📺 ᴏᴛᴛ : <b>{ott}</b>
-🎞️ ǫᴜᴀʟɪᴛʏ : <b>{quality}</b>
-🎧 ᴀᴜᴅɪᴏ : <b>{language}</b>
-🔥 ʀᴀᴛɪɴɢ : <b>{rating}</b>
-{episodes}
-
+╭────[ <b><a href={imdb_url}>{filename}</a></b> ]────⍟ 
+├➥ ɢᴇɴʀᴇs : <b>{genres}</b>
+├➥ ᴏᴛᴛ : <b>{ott}</b>
+├➥ ǫᴜᴀʟɪᴛʏ : <b>{quality}</b>
+├➥ ᴀᴜᴅɪᴏ : <b>{language}</b>
+├➥ ʀᴀᴛɪɴɢ : <b>{rating}</b>
+├➥{episodes}
+╰───────────────⍟
 """
 
     IMDB_TEMPLATE_TXT = """<b><a href={url}>{title} (<a href={url}/releaseinfo>{year}</a>)
