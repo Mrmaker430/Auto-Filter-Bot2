@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Union, BinaryIO, List, Optional, Callable
 from pyrogram import StopTransmission, enums, raw, types, utils
 from pyrogram.errors import FilePartMissing
-from pyrogram.file_id import FileType
+from pyrogram.file_id import FileId, FileType
 from pyrogram import enums, types, Client
 
 logging.basicConfig(
@@ -66,8 +66,15 @@ async def custom_send_cached_media(
             parse_mode=parse_mode
         )
 
+        is_video = False
         try:
-            if cover is not None:
+            decoded = FileId.decode(file_id)
+            is_video = (decoded.file_type == FileType.VIDEO)
+        except Exception:
+            pass
+
+        try:
+            if cover is not None and is_video:
                 if isinstance(cover, str):
                     if os.path.isfile(cover):
                         vidcover_media = await self.invoke(
