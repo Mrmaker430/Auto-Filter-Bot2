@@ -573,12 +573,12 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
 
     draw = ImageDraw.Draw(bg_img)
 
-    font_path_kurigram = "fonts/Kurigram.ttf"
-    if os.path.exists(font_path_kurigram):
-        font_path_bold = font_path_kurigram
-        font_path_reg = font_path_kurigram
-    else:
+    font_path_bold = "fonts/LiberationSans-Bold.ttf"
+    font_path_reg = "fonts/LiberationSans-Regular.ttf"
+
+    if not os.path.exists(font_path_bold):
         font_path_bold = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+    if not os.path.exists(font_path_reg):
         font_path_reg = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
 
     if not os.path.exists(font_path_bold):
