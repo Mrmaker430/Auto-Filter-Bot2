@@ -21,7 +21,7 @@ if TELEGRAPH_ACCESS_TOKEN:
 else:
     telegraph = Telegraph()
     try:
-        telegraph.create_account(short_name="Anime Dock")
+        telegraph.create_account(short_name="Satya Jit")
     except Exception:
         logger.exception("Failed to create Telegraph account")
 
@@ -172,7 +172,7 @@ async def extract_data_handler(client: Client, query: CallbackQuery):
             page_parts.append("<b>𝖲𝗎𝖻𝗍𝗂𝗍𝗅𝖾 𝖳𝗋𝖺𝖼𝗄𝗌:</b> None<br>")
 
         page_parts.append(
-            '<i><b>ᴊᴏɪɴ <a href="https://telegram.me/TechifyBots">ᴛᴇᴄʜɪꜰʏ ʙᴏᴛs</a></b></i>'
+            '<i><b>ᴊᴏɪɴ <a href="https://t.me/cholochhitro">ᴄʜᴏʟᴏᴄʜʜɪᴛʀᴏ</a></b></i>'
         )
 
         page_content = "".join(page_parts)
