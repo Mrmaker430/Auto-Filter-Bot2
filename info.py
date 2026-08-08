@@ -30,8 +30,8 @@ PREMIUM_LOGS = int(environ.get('PREMIUM_LOGS', '-1002681646366'))
 DELETE_CHANNELS = [int(dch) if id_pattern.search(dch) else dch for dch in environ.get('DELETE_CHANNELS', '-1002681646366').split()]
 AUTH_CHANNELS = [int(ch) for ch in environ.get("AUTH_CHANNELS", "-1002097884361").split() if ch and id_pattern.match(ch)]
 AUTH_REQ_CHANNELS = [int(ch) for ch in environ.get("AUTH_REQ_CHANNELS", "-1003784139938").split() if ch and id_pattern.match(ch)]
-REQST_CHANNEL = int(ch) if (ch := environ.get("REQST_CHANNEL", "-1002706389673")) and id_pattern.search(ch) else None
-SUPPORT_CHAT_ID = int(ch) if (ch := environ.get("SUPPORT_CHAT_ID", "-1002706389673")) and id_pattern.search(ch) else None
+REQST_CHANNEL = int(ch) if (ch := environ.get("REQST_CHANNEL", "-1003717648037")) and id_pattern.search(ch) else None
+SUPPORT_CHAT_ID = int(ch) if (ch := environ.get("SUPPORT_CHAT_ID", "-1003717648037")) and id_pattern.search(ch) else None
 
 OWNER = int(os.environ.get("OWNER", "1773034985"))
 CHANNEL_LINK = environ.get('CHANNEL_LINK', 'https://t.me/cholochhitro')
