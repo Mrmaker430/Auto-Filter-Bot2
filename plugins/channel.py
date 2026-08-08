@@ -6,7 +6,7 @@ from collections import defaultdict
 from .poster import get_movie_detailsx, fetch_image, get_movie_details, generate_landscape_poster
 from database.users_chats_db import db
 from pyrogram import Client, filters, enums
-from info import CHANNELS, UPDATE_CHANNEL, LINK_PREVIEW, ABOVE_PREVIEW, BAD_WORDS, LANDSCAPE_POSTER, TMDB_POSTER
+from info import CHANNELS, UPDATE_CHANNEL, LINK_PREVIEW, ABOVE_PREVIEW, BAD_WORDS, LANDSCAPE_POSTER, TMDB_POSTER, GROUP_LINK
 from Script import script
 from database.ia_filterdb import save_file
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -353,12 +353,16 @@ async def send_movie_update(bot, base_name):
                 return None
 
             text = generate_movie_message(movie_doc, base_name)
-            buttons = InlineKeyboardMarkup([[
-                InlineKeyboardButton(
-                    'ɢᴇᴛ ғɪʟᴇs',
+            buttons = InlineKeyboardMarkup([
+                [InlineKeyboardButton(
+                    'ʀᴇǫᴜᴇꜱᴛ ꜰʀᴏᴍ ʜᴇʀᴇ',
                     url=f"https://telegram.me/{temp.U_NAME}?start=getfile-{base_name.replace(' ', '-')}"
-                )
-            ]])
+                )],
+                [InlineKeyboardButton(
+                    'ɢʀᴏᴜᴘ ᴄʜᴀᴛ',
+                    url=GROUP_LINK
+                )]
+            ])
             use_landscape_generation = (
                 LANDSCAPE_POSTER
                 and TMDB_POSTER
@@ -433,12 +437,16 @@ async def update_movie_message(bot, base_name):
             return
 
         text = generate_movie_message(movie_doc, base_name)
-        buttons = InlineKeyboardMarkup([[
-            InlineKeyboardButton(
-                'ɢᴇᴛ ғɪʟᴇs',
+        buttons = InlineKeyboardMarkup([
+            [InlineKeyboardButton(
+                'ʀᴇǫᴜᴇꜱᴛ ꜰʀᴏᴍ ʜᴇʀᴇ',
                 url=f"https://telegram.me/{temp.U_NAME}?start=getfile-{base_name.replace(' ', '-')}"
-            )
-        ]])
+            )],
+            [InlineKeyboardButton(
+                'ɢʀᴏᴜᴘ ᴄʜᴀᴛ',
+                url=GROUP_LINK
+            )]
+        ])
 
         message_id = movie_doc.get("message_id")
         is_photo = movie_doc.get("is_photo", False)

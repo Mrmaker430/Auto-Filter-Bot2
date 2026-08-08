@@ -582,17 +582,17 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
         font_path_reg = None
 
     title_text = str(title).upper()
-    title_font_size = 64
+    title_font_size = 72
     if len(title_text) > 25:
-        title_font_size = 52
+        title_font_size = 58
     if len(title_text) > 40:
-        title_font_size = 40
+        title_font_size = 46
 
     try:
         title_font = ImageFont.truetype(font_path_bold, title_font_size) if font_path_bold else ImageFont.load_default()
-        desc_font = ImageFont.truetype(font_path_reg, 26) if font_path_reg else ImageFont.load_default()
-        badge_font = ImageFont.truetype(font_path_bold, 20) if font_path_bold else ImageFont.load_default()
-        handle_font = ImageFont.truetype(font_path_bold, 22) if font_path_bold else ImageFont.load_default()
+        desc_font = ImageFont.truetype(font_path_reg, 30) if font_path_reg else ImageFont.load_default()
+        badge_font = ImageFont.truetype(font_path_bold, 24) if font_path_bold else ImageFont.load_default()
+        handle_font = ImageFont.truetype(font_path_bold, 26) if font_path_bold else ImageFont.load_default()
     except Exception as e:
         logger.error(f"Font load error: {e}")
         title_font = desc_font = badge_font = handle_font = ImageFont.load_default()
@@ -621,7 +621,7 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
 
         if i == 0:
             line_y = y_cursor + line_h + 15
-            draw.rectangle([50, line_y, 50 + min(line_w, 350), line_y + 6], fill='#747ec4')
+            draw.rectangle([50, line_y, 50 + min(line_w, 350), line_y + 6], fill='#3b82f6')
 
         y_cursor += line_h + 22
 
@@ -653,20 +653,20 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
 
     badges = []
     if season_info:
-        badges.append((season_info.upper(), '#DB93A7'))
+        badges.append((season_info.upper(), '#1d4ed8'))
     elif year:
-        badges.append(('MOVIE', '#DB93A7'))
+        badges.append(('MOVIE', '#1d4ed8'))
 
     if isinstance(genres, list):
         for g in genres[:2]:
-            badges.append((g.upper(), '#726DAF'))
+            badges.append((g.upper(), '#2563eb'))
     elif isinstance(genres, str) and genres:
         for g in [g.strip() for g in genres.split(",") if g.strip()][:2]:
             if g.upper() != 'N/A':
-                badges.append((g.upper(), '#726DAF'))
+                badges.append((g.upper(), '#2563eb'))
 
     if year:
-        badges.append((str(year), '#DB93A7'))
+        badges.append((str(year), '#1d4ed8'))
 
     badge_x = 50
     badge_y = y_cursor
@@ -699,19 +699,19 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
     hth = bbox[3] - bbox[1]
     h_offset = bbox[1]
 
-    hpill_h = 52
+    hpill_h = 60
     hpill_w = 48 + htw + 35
 
     handle_overlay = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
     handle_draw = ImageDraw.Draw(handle_overlay)
-    handle_draw.rounded_rectangle([handle_x, handle_y, handle_x + hpill_w, handle_y + hpill_h], radius=hpill_h // 2, fill=(64, 74, 54, 150))
+    handle_draw.rounded_rectangle([handle_x, handle_y, handle_x + hpill_w, handle_y + hpill_h], radius=hpill_h // 2, fill=(30, 58, 138, 150))
 
     bg_img = Image.alpha_composite(bg_img.convert('RGBA'), handle_overlay).convert('RGB')
     draw = ImageDraw.Draw(bg_img)
 
-    tcx = handle_x + 26
-    tcy = handle_y + 22
-    tr = 16
+    tcx = handle_x + 30
+    tcy = handle_y + (hpill_h // 2)
+    tr = 18
     draw_telegram_logo(draw, tcx, tcy, tr)
 
     ty = handle_y + (hpill_h - hth) // 2 - h_offset

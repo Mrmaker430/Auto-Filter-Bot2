@@ -111,10 +111,12 @@ def shorten_description(desc, url="https://anilist.co"):
     return f"\n\n<blockquote expandable><strong>‣ ᴏᴠᴇʀᴠɪᴇᴡ :</strong> <em>{desc}</em></blockquote>"
 
 async def handle_add_get_files(s):
+    from info import GROUP_LINK
     m = s.get("movie_details") or {}
     title = m.get("title", "movie"); year = m.get("year", "")
     slug = f"{title} {year}".strip().replace(" ", "-")
-    s["buttons"].append([InlineKeyboardButton("📥 𝖦𝖾𝗍 𝖥𝗂𝗅𝖾𝗌 📥", url=f"https://telegram.me/{temp.U_NAME}?start=getfile-{slug}")])
+    s["buttons"].append([InlineKeyboardButton("ʀᴇǫᴜᴇꜱᴛ ꜰʀᴏᴍ ʜᴇʀᴇ", url=f"https://telegram.me/{temp.U_NAME}?start=getfile-{slug}")])
+    s["buttons"].append([InlineKeyboardButton("ɢʀᴏᴜᴘ ᴄʜᴀᴛ", url=GROUP_LINK)])
 
 async def handle_edit_caption(client: Client, query: CallbackQuery, s: dict):
     r = await get_user_input(client, query, s, "📝 𝖲𝖾𝗇𝖽 𝗍𝗁𝖾 𝗇𝖾𝗐 𝖼𝖺𝗉𝗍𝗂𝗈𝗇 𝗍𝖾𝗑𝗍.")
@@ -230,7 +232,7 @@ async def get_user_input(client, query, s, prompt_text):
 async def handle_buttons_menu(query, sid):
     kb = [
         [InlineKeyboardButton("➕ 𝖠𝖽𝖽/𝖤𝖽𝗂𝗍 𝖫𝖺𝗒𝗈𝗎𝗍", callback_data=f"post:edit_buttons:{sid}")],
-        [InlineKeyboardButton("📥 𝖠𝖽𝖽 '𝖦𝖾𝗍 𝖥𝗂𝗅𝖾𝗌' 𝖡𝗎𝗍𝗍𝗈𝗇", callback_data=f"post:add_get_files:{sid}")],
+        [InlineKeyboardButton("📥 𝖠𝖽𝖽 '𝖱𝖾𝗊𝗎𝖾𝗌𝗍' 𝖡𝗎𝗍𝗍𝗈𝗇", callback_data=f"post:add_get_files:{sid}")],
         [InlineKeyboardButton("🗑️ 𝖱𝖾𝗆𝗈𝗏𝖾 𝖺 𝖡𝗎𝗍𝗍𝗈𝗇", callback_data=f"post:remove_buttons_menu:{sid}")],
         [InlineKeyboardButton("🔙 𝖡𝖺𝖼𝗄", callback_data=f"post:back:{sid}")]
     ]
@@ -610,7 +612,7 @@ async def post_callbacks(client: Client, query: CallbackQuery):
             await handle_edit_buttons(client, query, s)
         elif action == "add_get_files":
             await handle_add_get_files(s)
-            await query.answer("✅ '𝖦𝖾𝗍 𝖥𝗂𝗅𝖾𝗌' 𝖻𝗎𝗍𝗍𝗈𝗇 𝖺𝖽𝖽𝖾𝖽!")
+            await query.answer("✅ '𝖱𝖾𝗊𝗎𝖾𝗌𝗍 𝖥𝗋𝗈𝗆 𝖧𝖾𝗋𝖾' 𝖺𝗇𝖽 '𝖦𝗋𝗈𝗎𝗉 𝖢𝗁𝖺𝗍' 𝖻𝗎𝗍𝗍𝗈𝗇𝗌 𝖺𝖽𝖽𝖾𝖽!")
         elif action == "edit_caption":
             await handle_edit_caption(client, query, s)
         elif action == "set_poster":
