@@ -499,3 +499,248 @@ async def get_movie_detailsx(query, id=False, file=None):
             break
     details['backdrop_url'] = backdrop_url.replace("/original/", "/w1280/") if backdrop_url else None
     return details
+
+
+async def fetch_image_bytes(url):
+    try:
+        session = await get_session()
+        async with session.get(url, ssl=False) as response:
+            if response.status != 200:
+                logger.error(f"Failed to fetch image: {response.status} for {url}")
+                return None
+            return await response.read()
+    except Exception as e:
+        logger.error(f"Error fetching image bytes: {e}")
+        return None
+
+
+def draw_telegram_logo(draw, cx, cy, r):
+    draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill='#33A5E4')
+    scale = r / 10.0
+    p1 = [
+        (cx + 6.5 * scale, cy - 6 * scale),
+        (cx - 6.5 * scale, cy - 0.5 * scale),
+        (cx - 0.5 * scale, cy + 1.5 * scale),
+    ]
+    p2 = [
+        (cx + 6.5 * scale, cy - 6 * scale),
+        (cx - 0.5 * scale, cy + 1.5 * scale),
+        (cx + 1.5 * scale, cy + 2.5 * scale),
+    ]
+    p3 = [
+        (cx - 0.5 * scale, cy + 1.5 * scale),
+        (cx - 1.5 * scale, cy + 5.5 * scale),
+        (cx + 1.5 * scale, cy + 2.5 * scale),
+    ]
+    draw.polygon(p1, fill='white')
+    draw.polygon(p2, fill='#E5E5E5')
+    draw.polygon(p3, fill='#B5B5B5')
+
+
+def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description, genres, year, season_info):
+    import os
+    from PIL import ImageDraw, ImageFont, ImageFilter, ImageOps
+    import textwrap
+
+    canvas_w, canvas_h = 1280, 720
+
+    if backdrop_bytes:
+        try:
+            bg_img = Image.open(BytesIO(backdrop_bytes))
+        except Exception as e:
+            logger.error(f"Failed to open backdrop: {e}")
+            bg_img = Image.new('RGB', (canvas_w, canvas_h), color='#2c3e50')
+    else:
+        bg_img = Image.new('RGB', (canvas_w, canvas_h), color='#2c3e50')
+
+    bg_img = ImageOps.fit(bg_img, (canvas_w, canvas_h), centering=(0.5, 0.5))
+    bg_img = bg_img.filter(ImageFilter.GaussianBlur(radius=20))
+
+    overlay = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 150))
+    bg_img = Image.alpha_composite(bg_img.convert('RGBA'), overlay).convert('RGB')
+
+    draw = ImageDraw.Draw(bg_img)
+
+    font_path_bold = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+    font_path_reg = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
+
+    if not os.path.exists(font_path_bold):
+        font_path_bold = None
+    if not os.path.exists(font_path_reg):
+        font_path_reg = None
+
+    try:
+        title_font = ImageFont.truetype(font_path_bold, 52) if font_path_bold else ImageFont.load_default()
+        desc_font = ImageFont.truetype(font_path_reg, 22) if font_path_reg else ImageFont.load_default()
+        badge_font = ImageFont.truetype(font_path_bold, 16) if font_path_bold else ImageFont.load_default()
+        handle_font = ImageFont.truetype(font_path_bold, 18) if font_path_bold else ImageFont.load_default()
+    except Exception as e:
+        logger.error(f"Font load error: {e}")
+        title_font = desc_font = badge_font = handle_font = ImageFont.load_default()
+
+    title_text = str(title).upper()
+    if len(title_text) > 30:
+        try:
+            title_font = ImageFont.truetype(font_path_bold, 40) if font_path_bold else ImageFont.load_default()
+        except Exception:
+            title_font = ImageFont.load_default()
+
+    title_lines = []
+    current_line = ""
+    for word in title_text.split():
+        test_line = f"{current_line} {word}".strip()
+        bbox = draw.textbbox((0, 0), test_line, font=title_font)
+        line_w = bbox[2] - bbox[0]
+        if line_w < 800:
+            current_line = test_line
+        else:
+            if current_line:
+                title_lines.append(current_line)
+            current_line = word
+    if current_line:
+        title_lines.append(current_line)
+
+    y_cursor = 180
+    for line in title_lines:
+        draw.text((50, y_cursor), line, fill='white', font=title_font)
+        bbox = draw.textbbox((0, 0), line, font=title_font)
+        line_w = bbox[2] - bbox[0]
+        line_h = bbox[3] - bbox[1]
+
+        if line == title_lines[0]:
+            line_y = y_cursor + line_h + 15
+            draw.rectangle([50, line_y, 50 + min(line_w, 350), line_y + 6], fill='#747ec4')
+
+        y_cursor += line_h + 18
+
+    y_cursor += 15
+
+    desc_text = str(description or "")
+    desc_lines = textwrap.wrap(desc_text, width=65)
+    desc_lines = desc_lines[:3]
+    for line in desc_lines:
+        draw.text((50, y_cursor), line, fill='#F0F0F0', font=desc_font)
+        bbox = draw.textbbox((0, 0), line, font=desc_font)
+        y_cursor += (bbox[3] - bbox[1]) + 10
+
+    y_cursor += 20
+
+    badges = []
+    if season_info:
+        badges.append((season_info.upper(), '#DB93A7'))
+    elif year:
+        badges.append(('MOVIE', '#DB93A7'))
+
+    if isinstance(genres, list):
+        for g in genres[:2]:
+            badges.append((g.upper(), '#726DAF'))
+    elif isinstance(genres, str) and genres:
+        for g in [g.strip() for g in genres.split(",") if g.strip()][:2]:
+            if g.upper() != 'N/A':
+                badges.append((g.upper(), '#726DAF'))
+
+    if year:
+        badges.append((str(year), '#DB93A7'))
+
+    badge_x = 50
+    badge_y = y_cursor
+    for text, color in badges:
+        bbox = draw.textbbox((0, 0), text, font=badge_font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        bx_offset = bbox[1]
+
+        pill_w = tw + 30
+        pill_h = th + 16
+
+        draw.rounded_rectangle([badge_x, badge_y, badge_x + pill_w, badge_y + pill_h], radius=pill_h // 2, fill=color)
+
+        tx = badge_x + 15
+        ty = badge_y + (pill_h - th) // 2 - bx_offset
+        draw.text((tx, ty), text, fill='white', font=badge_font)
+
+        badge_x += pill_w + 12
+
+    handle_x = 50
+    handle_y = 500
+    handle_text = "@cholochhitro"
+
+    bbox = draw.textbbox((0, 0), handle_text, font=handle_font)
+    htw = bbox[2] - bbox[0]
+    hth = bbox[3] - bbox[1]
+    h_offset = bbox[1]
+
+    hpill_h = 44
+    hpill_w = 40 + htw + 35
+
+    handle_overlay = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
+    handle_draw = ImageDraw.Draw(handle_overlay)
+    handle_draw.rounded_rectangle([handle_x, handle_y, handle_x + hpill_w, handle_y + hpill_h], radius=hpill_h // 2, fill=(64, 74, 54, 150))
+
+    bg_img = Image.alpha_composite(bg_img.convert('RGBA'), handle_overlay).convert('RGB')
+    draw = ImageDraw.Draw(bg_img)
+
+    tcx = handle_x + 22
+    tcy = handle_y + 22
+    tr = 14
+    draw_telegram_logo(draw, tcx, tcy, tr)
+
+    ty = handle_y + (hpill_h - hth) // 2 - h_offset
+    draw.text((handle_x + 45, ty), handle_text, fill='white', font=handle_font)
+
+    px, py = 938, 136
+    pw, ph = 296, 447
+
+    if poster_bytes:
+        try:
+            poster_img = Image.open(BytesIO(poster_bytes))
+            poster_img = ImageOps.fit(poster_img, (pw, ph), centering=(0.5, 0.5))
+
+            mask = Image.new('L', (pw, ph), 0)
+            mask_draw = ImageDraw.Draw(mask)
+            mask_draw.rounded_rectangle([0, 0, pw, ph], radius=16, fill=255)
+
+            temp_layer = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
+            temp_layer.paste(poster_img.convert('RGBA'), (px, py), mask)
+
+            bg_img = Image.alpha_composite(bg_img.convert('RGBA'), temp_layer).convert('RGB')
+            draw = ImageDraw.Draw(bg_img)
+
+            draw.rounded_rectangle([px - 2, py - 2, px + pw + 2, py + ph + 2], radius=18, outline='white', width=4)
+        except Exception as e:
+            logger.error(f"Failed to fetch/paste vertical poster: {e}")
+
+    out = BytesIO()
+    bg_img.save(out, format="JPEG", quality=95)
+    out.seek(0)
+    return out
+
+
+async def generate_landscape_poster(title, description, genres, year, season_info, backdrop_url, poster_url):
+    import asyncio
+
+    tasks = []
+    if backdrop_url:
+        tasks.append(fetch_image_bytes(backdrop_url))
+    else:
+        tasks.append(asyncio.sleep(0, result=None))
+
+    if poster_url:
+        tasks.append(fetch_image_bytes(poster_url))
+    else:
+        tasks.append(asyncio.sleep(0, result=None))
+
+    backdrop_bytes, poster_bytes = await asyncio.gather(*tasks)
+
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(
+        None,
+        _draw_landscape_poster_sync,
+        backdrop_bytes,
+        poster_bytes,
+        title,
+        description,
+        genres,
+        year,
+        season_info
+    )

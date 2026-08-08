@@ -9,7 +9,7 @@ from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
 from pyrogram.errors import MessageNotModified, MessageTooLong
-from .poster import get_movie_detailsx
+from .poster import get_movie_detailsx, generate_landscape_poster
 from info import ADMINS, UPDATE_CHANNEL, ABOVE_PREVIEW
 from utils import temp
 
@@ -471,7 +471,36 @@ async def build_final_post_content(session: dict, session_id: int):
         else:
             poster = session.get("custom_poster") or m.get("poster_portrait")
     else:
-        poster = session.get("custom_poster") or (m.get("backdrop_url") if session.get("use_landscape") else m.get("poster_url"))
+        if session.get("photo_mode") and session.get("use_landscape") and not session.get("custom_poster"):
+            genres_list = m.get("genres") or []
+            if isinstance(genres_list, str):
+                genres_list = [g.strip() for g in genres_list.split(",") if g.strip()]
+
+            seasons_count = m.get("seasons")
+            if seasons_count and seasons_count != "N/A":
+                try:
+                    s_val = int(seasons_count)
+                    season_info = f"{s_val} Season" if s_val == 1 else f"{s_val} Seasons"
+                except ValueError:
+                    season_info = str(seasons_count)
+            else:
+                kind = str(m.get("kind", "")).lower()
+                if "series" in kind or "tv" in kind:
+                    season_info = "SERIES"
+                else:
+                    season_info = "MOVIE"
+
+            poster = await generate_landscape_poster(
+                title=m.get("title", session.get("movie_name")),
+                description=m.get("plot", ""),
+                genres=genres_list,
+                year=m.get("year"),
+                season_info=season_info,
+                backdrop_url=m.get("backdrop_url") or m.get("poster_url"),
+                poster_url=m.get("poster_url"),
+            )
+        else:
+            poster = session.get("custom_poster") or (m.get("backdrop_url") if session.get("use_landscape") else m.get("poster_url"))
     kb = build_keyboard(session, session_id)
     return final_caption, kb, poster
 
