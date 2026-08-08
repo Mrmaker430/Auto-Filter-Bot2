@@ -358,7 +358,7 @@ async def get_movie_details(query, bulk=False, id=False, file=None):
         'year': movie.year,
         'genres': listx_to_str(movie.genres),
         'poster': movie.cover_url,
-        'poster_url': movie.cover_url.split("._V1_")[0] + "._V1_SX1280.jpg" if movie.cover_url and "._V1_" in movie.cover_url else movie.cover_url,
+        'poster_url': movie.cover_url.split("._V1_")[0] + "._V1_SX500.jpg" if movie.cover_url and "._V1_" in movie.cover_url else movie.cover_url,
         'plot': plot,
         'rating': str(movie.rating),
         "url": movie.url or f"https://www.imdb.com/title/{imdb_id}"
@@ -489,7 +489,7 @@ async def get_movie_detailsx(query, id=False, file=None):
             if key and posters.get(key):
                 poster_url = posters[key][0]
                 break
-    details['poster_url'] = poster_url.replace("/original/", "/w1280/") if poster_url else None
+    details['poster_url'] = poster_url.replace("/original/", "/w500/") if poster_url else None
     backdrops = data.get('images', {}).get('backdrops', {})
     original_language = data.get('images', {}).get('original_language')
     backdrop_url = None
@@ -497,7 +497,7 @@ async def get_movie_detailsx(query, id=False, file=None):
         if key and backdrops.get(key):
             backdrop_url = backdrops[key][0]
             break
-    details['backdrop_url'] = backdrop_url.replace("/original/", "/w1280/") if backdrop_url else None
+    details['backdrop_url'] = backdrop_url.replace("/original/", "/w780/") if backdrop_url else None
     return details
 
 
@@ -573,8 +573,13 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
 
     draw = ImageDraw.Draw(bg_img)
 
-    font_path_bold = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
-    font_path_reg = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
+    font_path_kurigram = "fonts/Kurigram.ttf"
+    if os.path.exists(font_path_kurigram):
+        font_path_bold = font_path_kurigram
+        font_path_reg = font_path_kurigram
+    else:
+        font_path_bold = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+        font_path_reg = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
 
     if not os.path.exists(font_path_bold):
         font_path_bold = None
@@ -740,7 +745,7 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
             logger.error(f"Failed to fetch/paste vertical poster: {e}")
 
     out = BytesIO()
-    bg_img.save(out, format="JPEG", quality=95)
+    bg_img.save(out, format="JPEG", quality=85)
     out.seek(0)
     return out
 

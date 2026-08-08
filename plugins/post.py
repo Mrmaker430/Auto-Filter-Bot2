@@ -112,10 +112,6 @@ def shorten_description(desc, url="https://anilist.co"):
 
 async def handle_add_get_files(s):
     from info import GROUP_LINK
-    m = s.get("movie_details") or {}
-    title = m.get("title", "movie"); year = m.get("year", "")
-    slug = f"{title} {year}".strip().replace(" ", "-")
-    s["buttons"].append([InlineKeyboardButton("ʀᴇǫᴜᴇꜱᴛ ꜰʀᴏᴍ ʜᴇʀᴇ", url=f"https://telegram.me/{temp.U_NAME}?start=getfile-{slug}")])
     s["buttons"].append([InlineKeyboardButton("ɢʀᴏᴜᴘ ᴄʜᴀᴛ", url=GROUP_LINK)])
 
 async def handle_edit_caption(client: Client, query: CallbackQuery, s: dict):
@@ -126,11 +122,13 @@ async def handle_edit_caption(client: Client, query: CallbackQuery, s: dict):
 async def handle_set_poster(client: Client, query: CallbackQuery, s: dict):
     r = await get_user_input(client, query, s, "🖼️ 𝖲𝖾𝗇𝖽 𝖺 𝗉𝗁𝗈𝗍𝗈 𝗈𝗋 𝗂𝗆𝖺𝗀𝖾 𝖴𝖱𝖫.\n𝖴𝗌𝖾 `/reset` 𝗍𝗈 𝗋𝖾𝗌𝗍𝗈𝗋𝖾 𝗍𝗁𝖾 𝖽𝖾𝖿𝖺𝗎𝗅𝗍 𝗉𝗈𝗌𝗍𝖾𝗋.")
     if r:
+        s["generated_poster_bytes"] = None
+        s["landscape_poster_file_id"] = None
         if r.photo:
             s["custom_poster"] = r.photo.file_id
             if not s["photo_mode"]:
                 s["photo_mode"] = True
-                await query.answer("✅ 𝖲𝗐𝗂𝗍𝖼𝗁𝖾𝖽 𝗍𝗈 𝖯𝗁𝗈𝗍𝗈 𝗆𝗈𝖽𝖾 𝖺𝗎𝗍𝗈𝗆𝖺𝗍𝗂𝖼𝖺𝗅𝗅𝗒.", show_alert=True)
+                await query.answer("✅ 𝖲𝗐𝗂𝗍𝖼𝗁𝖾𝖽 𝗍𝗈 𝖯𝗁𝗈ᴛᴏ 𝗆ᴏ𝖽𝖾 𝖺𝗎ᴛᴏ𝗆𝖺𝗍𝗂𝖼𝖺𝗅𝗅𝗒.", show_alert=True)
         elif r.text and r.text.startswith("http"):
             s["custom_poster"] = r.text
         elif r.text and r.text == "/reset":
@@ -232,7 +230,7 @@ async def get_user_input(client, query, s, prompt_text):
 async def handle_buttons_menu(query, sid):
     kb = [
         [InlineKeyboardButton("➕ 𝖠𝖽𝖽/𝖤𝖽𝗂𝗍 𝖫𝖺𝗒𝗈𝗎𝗍", callback_data=f"post:edit_buttons:{sid}")],
-        [InlineKeyboardButton("📥 𝖠𝖽𝖽 '𝖱𝖾𝗊𝗎𝖾𝗌𝗍' 𝖡𝗎𝗍𝗍𝗈𝗇", callback_data=f"post:add_get_files:{sid}")],
+        [InlineKeyboardButton("📥 𝖠𝖽𝖽 'ɢʀᴏᴜᴘ ᴄʜᴀᴛ' 𝖡𝗎𝗍ᴛᴏ𝗇", callback_data=f"post:add_get_files:{sid}")],
         [InlineKeyboardButton("🗑️ 𝖱𝖾𝗆𝗈𝗏𝖾 𝖺 𝖡𝗎𝗍𝗍𝗈𝗇", callback_data=f"post:remove_buttons_menu:{sid}")],
         [InlineKeyboardButton("🔙 𝖡𝖺𝖼𝗄", callback_data=f"post:back:{sid}")]
     ]
@@ -249,13 +247,17 @@ async def handle_remove_button(s, extra):
 
 async def handle_toggle_preview(query: CallbackQuery, s: dict):
     if s.get("custom_poster") and not s["custom_poster"].startswith("http"):
-        await query.answer("⚠️ 𝖢𝖺𝗇𝗇𝗈𝗍 𝗌𝗐𝗂𝗍𝖼𝗁 𝗍𝗈 𝖳𝖾𝗑𝗍 𝗆𝗈𝖽𝖾 𝗐𝗁𝗂𝗅𝖾 𝗎𝗌𝗂𝗇𝗀 𝖺𝗇 𝗎𝗉𝗅𝗈𝖺𝖽𝖾𝖽 𝗉𝗁𝗈𝗍𝗈.", show_alert=True)
+        await query.answer("⚠️ 𝖢𝖺𝗇𝗇𝗈𝗍 𝗌𝗐𝗂𝗍𝖼𝗁 𝗍𝗈 𝖳𝖾𝗑𝗍 𝗆ᴏ𝖽𝖾 𝗐𝗁𝗂𝗅𝖾 𝗎𝗌𝗂𝗇𝗀 𝖺𝗇 𝗎𝗉𝗅ᴏ𝖺𝖽𝖾𝖽 𝗉𝗁ᴏᴛᴏ.", show_alert=True)
         return False
     s["photo_mode"] = not s["photo_mode"]
+    s["generated_poster_bytes"] = None
+    s["landscape_poster_file_id"] = None
     return True
 
 async def handle_toggle_poster(s):
     s["use_landscape"] = not s["use_landscape"]
+    s["generated_poster_bytes"] = None
+    s["landscape_poster_file_id"] = None
     if s.get("is_anipost"):
         s["custom_poster"] = None
     return True
@@ -357,7 +359,9 @@ async def start_post_session(client: Client, message: Message, user_id: int, mov
         "res_format": RESOLUTIONS_FORMAT,
         "active_template": "minimalist",
         "movie_details": movie_details,
-        "is_anipost": False
+        "is_anipost": False,
+        "generated_poster_bytes": None,
+        "landscape_poster_file_id": None
     }
     if USE_DEFAULT_BTN:
         post_sessions[user_id]["buttons"].append([InlineKeyboardButton("👀 ᴡᴀᴛᴄʜ ɴᴏᴡ", url=DEFAULT_BTN_LINK)])
@@ -421,7 +425,9 @@ async def start_anipost_session(client: Client, message: Message, user_id: int, 
         "active_template": None,
         "movie_details": anime_details,
         "custom_poster": anime_details["poster_landscape"],
-        "is_anipost": True
+        "is_anipost": True,
+        "generated_poster_bytes": None,
+        "landscape_poster_file_id": None
     }
     if USE_DEFAULT_BTN:
         post_sessions[user_id]["buttons"].append([InlineKeyboardButton("👀 ᴡᴀᴛᴄʜ ɴᴏᴡ", url=DEFAULT_BTN_LINK)])
@@ -474,33 +480,40 @@ async def build_final_post_content(session: dict, session_id: int):
             poster = session.get("custom_poster") or m.get("poster_portrait")
     else:
         if session.get("photo_mode") and session.get("use_landscape") and not session.get("custom_poster"):
-            genres_list = m.get("genres") or []
-            if isinstance(genres_list, str):
-                genres_list = [g.strip() for g in genres_list.split(",") if g.strip()]
-
-            seasons_count = m.get("seasons")
-            if seasons_count and seasons_count != "N/A":
-                try:
-                    s_val = int(seasons_count)
-                    season_info = f"{s_val} Season" if s_val == 1 else f"{s_val} Seasons"
-                except ValueError:
-                    season_info = str(seasons_count)
+            if session.get("landscape_poster_file_id"):
+                poster = session["landscape_poster_file_id"]
+            elif session.get("generated_poster_bytes"):
+                session["generated_poster_bytes"].seek(0)
+                poster = session["generated_poster_bytes"]
             else:
-                kind = str(m.get("kind", "")).lower()
-                if "series" in kind or "tv" in kind:
-                    season_info = "SERIES"
-                else:
-                    season_info = "MOVIE"
+                genres_list = m.get("genres") or []
+                if isinstance(genres_list, str):
+                    genres_list = [g.strip() for g in genres_list.split(",") if g.strip()]
 
-            poster = await generate_landscape_poster(
-                title=m.get("title", session.get("movie_name")),
-                description=m.get("plot", ""),
-                genres=genres_list,
-                year=m.get("year"),
-                season_info=season_info,
-                backdrop_url=m.get("backdrop_url") or m.get("poster_url"),
-                poster_url=m.get("poster_url"),
-            )
+                seasons_count = m.get("seasons")
+                if seasons_count and seasons_count != "N/A":
+                    try:
+                        s_val = int(seasons_count)
+                        season_info = f"{s_val} Season" if s_val == 1 else f"{s_val} Seasons"
+                    except ValueError:
+                        season_info = str(seasons_count)
+                else:
+                    kind = str(m.get("kind", "")).lower()
+                    if "series" in kind or "tv" in kind:
+                        season_info = "SERIES"
+                    else:
+                        season_info = "MOVIE"
+
+                poster = await generate_landscape_poster(
+                    title=m.get("title", session.get("movie_name")),
+                    description=m.get("plot", ""),
+                    genres=genres_list,
+                    year=m.get("year"),
+                    season_info=season_info,
+                    backdrop_url=m.get("backdrop_url") or m.get("poster_url"),
+                    poster_url=m.get("poster_url"),
+                )
+                session["generated_poster_bytes"] = poster
         else:
             poster = session.get("custom_poster") or (m.get("backdrop_url") if session.get("use_landscape") else m.get("poster_url"))
     kb = build_keyboard(session, session_id)
@@ -531,6 +544,8 @@ async def update_post_preview(client: Client, session_id: int, chat_id: int, for
                 await client.delete_messages(chat_id, session["last_preview_message_id"])
                 sent = await client.send_photo(chat_id, photo=poster_to_use, caption=final_caption, reply_markup=keyboard, reply_to_message_id=session["original_message_id"])
                 session["last_preview_message_id"] = sent.id
+                if sent and sent.photo:
+                    session["landscape_poster_file_id"] = sent.photo.file_id
             else:
                 await client.edit_message_caption(chat_id, session["last_preview_message_id"], caption=final_caption, reply_markup=keyboard)
         else:
@@ -612,7 +627,7 @@ async def post_callbacks(client: Client, query: CallbackQuery):
             await handle_edit_buttons(client, query, s)
         elif action == "add_get_files":
             await handle_add_get_files(s)
-            await query.answer("✅ '𝖱𝖾𝗊𝗎𝖾𝗌𝗍 𝖥𝗋𝗈𝗆 𝖧𝖾𝗋𝖾' 𝖺𝗇𝖽 '𝖦𝗋𝗈𝗎𝗉 𝖢𝗁𝖺𝗍' 𝖻𝗎𝗍𝗍𝗈𝗇𝗌 𝖺𝖽𝖽𝖾𝖽!")
+            await query.answer("✅ 'ɢʀᴏᴜᴘ ᴄʜᴀᴛ' 𝖻𝗎𝗍ᴛᴏ𝗇 𝖺𝖽𝖽𝖾𝖽!")
         elif action == "edit_caption":
             await handle_edit_caption(client, query, s)
         elif action == "set_poster":
