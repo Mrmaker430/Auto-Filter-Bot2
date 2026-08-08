@@ -3,7 +3,7 @@ import logging
 import asyncio
 from datetime import datetime
 from collections import defaultdict
-from .poster import get_movie_detailsx, fetch_image, get_movie_details
+from .poster import get_movie_detailsx, fetch_image, get_movie_details, generate_landscape_poster
 from database.users_chats_db import db
 from pyrogram import Client, filters, enums
 from info import CHANNELS, UPDATE_CHANNEL, LINK_PREVIEW, ABOVE_PREVIEW, BAD_WORDS, LANDSCAPE_POSTER, TMDB_POSTER
@@ -302,10 +302,14 @@ async def _process_with_lock(bot, filename, caption, media_info, base_name, proc
         movie_doc = {
             "_id": base_name,
             "files": [file_data],
+            "title": details.get("title") or base_name,
+            "poster_portrait": details.get("poster_url"),
+            "backdrop_url": details.get("backdrop_url"),
+            "plot": details.get("plot", ""),
             "poster_url": details.get("backdrop_url") if LANDSCAPE_POSTER and TMDB_POSTER and details.get("backdrop_url") and not error_tmdb else details.get("poster_url"),
             "genres": genres,
             "rating": details.get("rating", "N/A"),
-            "imdb_url": details.get("url", "")if not TMDB_POSTER or error_tmdb else details.get("tmdb_url"),
+            "imdb_url": details.get("url", "") if not TMDB_POSTER or error_tmdb else details.get("tmdb_url"),
             "year": details.get("year") or media_info["year"],
             "tag": media_info["tag"],
             "ott_platform": media_info["ott_platform"],
@@ -355,9 +359,40 @@ async def send_movie_update(bot, base_name):
                     url=f"https://telegram.me/{temp.U_NAME}?start=getfile-{base_name.replace(' ', '-')}"
                 )
             ]])
-            size=(2560, 1440) if LANDSCAPE_POSTER and TMDB_POSTER and movie_doc.get("is_backdrop") and not movie_doc.get("error_tmdb") else (853, 1280)
+            use_landscape_generation = (
+                LANDSCAPE_POSTER
+                and TMDB_POSTER
+                and movie_doc.get("is_backdrop")
+                and not movie_doc.get("error_tmdb")
+                and not LINK_PREVIEW
+            )
             if movie_doc.get("poster_url") and not LINK_PREVIEW:
-                resized_poster = await fetch_image(movie_doc["poster_url"], size)
+                if use_landscape_generation:
+                    genres_list = [g.strip() for g in movie_doc.get("genres", "").split(",") if g.strip() and g != "N/A"]
+                    season_info = None
+                    if movie_doc.get("tag") == "#SERIES":
+                        seasons = {f.get("season") for f in movie_doc.get("files", []) if f.get("season")}
+                        if seasons:
+                            max_season = max(seasons)
+                            season_info = f"{max_season} Season" if max_season == 1 else f"{max_season} Seasons"
+                        else:
+                            season_info = "SERIES"
+                    else:
+                        season_info = "MOVIE"
+
+                    resized_poster = await generate_landscape_poster(
+                        title=movie_doc.get("title") or base_name,
+                        description=movie_doc.get("plot") or "",
+                        genres=genres_list,
+                        year=movie_doc.get("year"),
+                        season_info=season_info,
+                        backdrop_url=movie_doc.get("backdrop_url") or movie_doc.get("poster_url"),
+                        poster_url=movie_doc.get("poster_portrait") or movie_doc.get("poster_url"),
+                    )
+                else:
+                    size = (853, 1280)
+                    resized_poster = await fetch_image(movie_doc["poster_url"], size)
+
                 msg = await bot.send_photo(
                     chat_id=UPDATE_CHANNEL,
                     photo=resized_poster,
