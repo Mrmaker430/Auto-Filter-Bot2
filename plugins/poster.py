@@ -544,20 +544,32 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
 
     canvas_w, canvas_h = 1280, 720
 
+    # Create solid modern slate-black background
+    bg_img = Image.new('RGB', (canvas_w, canvas_h), color='#111215')
+
     if backdrop_bytes:
         try:
-            bg_img = Image.open(BytesIO(backdrop_bytes))
+            bd_img = Image.open(BytesIO(backdrop_bytes))
+            bd_img = ImageOps.fit(bd_img, (canvas_w, canvas_h), centering=(0.5, 0.5))
+
+            # Create gradient mask (0 = solid bg, 255 = backdrop)
+            mask = Image.new('L', (canvas_w, canvas_h))
+            mask_pixels = []
+            for y in range(canvas_h):
+                for x in range(canvas_w):
+                    if x < 400:
+                        val = 0
+                    elif x < 1150:
+                        val = int(((x - 400) / 750) * 90)
+                    else:
+                        val = 90
+                    mask_pixels.append(val)
+            mask.putdata(mask_pixels)
+
+            # Paste the clean (unblurred) backdrop onto solid background using the mask
+            bg_img.paste(bd_img, (0, 0), mask)
         except Exception as e:
             logger.error(f"Failed to open backdrop: {e}")
-            bg_img = Image.new('RGB', (canvas_w, canvas_h), color='#2c3e50')
-    else:
-        bg_img = Image.new('RGB', (canvas_w, canvas_h), color='#2c3e50')
-
-    bg_img = ImageOps.fit(bg_img, (canvas_w, canvas_h), centering=(0.5, 0.5))
-    bg_img = bg_img.filter(ImageFilter.GaussianBlur(radius=20))
-
-    overlay = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 150))
-    bg_img = Image.alpha_composite(bg_img.convert('RGBA'), overlay).convert('RGB')
 
     draw = ImageDraw.Draw(bg_img)
 
@@ -569,21 +581,21 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
     if not os.path.exists(font_path_reg):
         font_path_reg = None
 
+    title_text = str(title).upper()
+    title_font_size = 64
+    if len(title_text) > 25:
+        title_font_size = 52
+    if len(title_text) > 40:
+        title_font_size = 40
+
     try:
-        title_font = ImageFont.truetype(font_path_bold, 52) if font_path_bold else ImageFont.load_default()
-        desc_font = ImageFont.truetype(font_path_reg, 22) if font_path_reg else ImageFont.load_default()
-        badge_font = ImageFont.truetype(font_path_bold, 16) if font_path_bold else ImageFont.load_default()
-        handle_font = ImageFont.truetype(font_path_bold, 18) if font_path_bold else ImageFont.load_default()
+        title_font = ImageFont.truetype(font_path_bold, title_font_size) if font_path_bold else ImageFont.load_default()
+        desc_font = ImageFont.truetype(font_path_reg, 26) if font_path_reg else ImageFont.load_default()
+        badge_font = ImageFont.truetype(font_path_bold, 20) if font_path_bold else ImageFont.load_default()
+        handle_font = ImageFont.truetype(font_path_bold, 22) if font_path_bold else ImageFont.load_default()
     except Exception as e:
         logger.error(f"Font load error: {e}")
         title_font = desc_font = badge_font = handle_font = ImageFont.load_default()
-
-    title_text = str(title).upper()
-    if len(title_text) > 30:
-        try:
-            title_font = ImageFont.truetype(font_path_bold, 40) if font_path_bold else ImageFont.load_default()
-        except Exception:
-            title_font = ImageFont.load_default()
 
     title_lines = []
     current_line = ""
@@ -591,7 +603,7 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
         test_line = f"{current_line} {word}".strip()
         bbox = draw.textbbox((0, 0), test_line, font=title_font)
         line_w = bbox[2] - bbox[0]
-        if line_w < 800:
+        if line_w < 720:
             current_line = test_line
         else:
             if current_line:
@@ -600,28 +612,42 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
     if current_line:
         title_lines.append(current_line)
 
-    y_cursor = 180
-    for line in title_lines:
+    y_cursor = 110
+    for i, line in enumerate(title_lines):
         draw.text((50, y_cursor), line, fill='white', font=title_font)
         bbox = draw.textbbox((0, 0), line, font=title_font)
         line_w = bbox[2] - bbox[0]
         line_h = bbox[3] - bbox[1]
 
-        if line == title_lines[0]:
+        if i == 0:
             line_y = y_cursor + line_h + 15
             draw.rectangle([50, line_y, 50 + min(line_w, 350), line_y + 6], fill='#747ec4')
 
-        y_cursor += line_h + 18
+        y_cursor += line_h + 22
 
     y_cursor += 15
 
     desc_text = str(description or "")
-    desc_lines = textwrap.wrap(desc_text, width=65)
+    desc_lines = []
+    current_line = ""
+    for word in desc_text.split():
+        test_line = f"{current_line} {word}".strip()
+        bbox = draw.textbbox((0, 0), test_line, font=desc_font)
+        line_w = bbox[2] - bbox[0]
+        if line_w < 720:
+            current_line = test_line
+        else:
+            if current_line:
+                desc_lines.append(current_line)
+            current_line = word
+    if current_line:
+        desc_lines.append(current_line)
+
     desc_lines = desc_lines[:3]
     for line in desc_lines:
         draw.text((50, y_cursor), line, fill='#F0F0F0', font=desc_font)
         bbox = draw.textbbox((0, 0), line, font=desc_font)
-        y_cursor += (bbox[3] - bbox[1]) + 10
+        y_cursor += (bbox[3] - bbox[1]) + 12
 
     y_cursor += 20
 
@@ -644,25 +670,28 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
 
     badge_x = 50
     badge_y = y_cursor
+    badge_pill_h = 40
     for text, color in badges:
         bbox = draw.textbbox((0, 0), text, font=badge_font)
         tw = bbox[2] - bbox[0]
         th = bbox[3] - bbox[1]
         bx_offset = bbox[1]
 
-        pill_w = tw + 30
-        pill_h = th + 16
+        pill_w = tw + 36
+        pill_h = th + 20
+        badge_pill_h = pill_h
 
         draw.rounded_rectangle([badge_x, badge_y, badge_x + pill_w, badge_y + pill_h], radius=pill_h // 2, fill=color)
 
-        tx = badge_x + 15
+        tx = badge_x + 18
         ty = badge_y + (pill_h - th) // 2 - bx_offset
         draw.text((tx, ty), text, fill='white', font=badge_font)
 
-        badge_x += pill_w + 12
+        badge_x += pill_w + 15
 
     handle_x = 50
-    handle_y = 500
+    calculated_handle_y = badge_y + (badge_pill_h if badges else 0) + 45
+    handle_y = max(530, min(calculated_handle_y, 600))
     handle_text = "@cholochhitro"
 
     bbox = draw.textbbox((0, 0), handle_text, font=handle_font)
@@ -670,8 +699,8 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
     hth = bbox[3] - bbox[1]
     h_offset = bbox[1]
 
-    hpill_h = 44
-    hpill_w = 40 + htw + 35
+    hpill_h = 52
+    hpill_w = 48 + htw + 35
 
     handle_overlay = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
     handle_draw = ImageDraw.Draw(handle_overlay)
@@ -680,16 +709,16 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
     bg_img = Image.alpha_composite(bg_img.convert('RGBA'), handle_overlay).convert('RGB')
     draw = ImageDraw.Draw(bg_img)
 
-    tcx = handle_x + 22
+    tcx = handle_x + 26
     tcy = handle_y + 22
-    tr = 14
+    tr = 16
     draw_telegram_logo(draw, tcx, tcy, tr)
 
     ty = handle_y + (hpill_h - hth) // 2 - h_offset
-    draw.text((handle_x + 45, ty), handle_text, fill='white', font=handle_font)
+    draw.text((handle_x + 55, ty), handle_text, fill='white', font=handle_font)
 
-    px, py = 938, 136
-    pw, ph = 296, 447
+    px, py = 847, 80
+    pw, ph = 373, 560
 
     if poster_bytes:
         try:
