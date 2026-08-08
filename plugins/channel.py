@@ -355,10 +355,6 @@ async def send_movie_update(bot, base_name):
             text = generate_movie_message(movie_doc, base_name)
             buttons = InlineKeyboardMarkup([
                 [InlineKeyboardButton(
-                    'ʀᴇǫᴜᴇꜱᴛ ꜰʀᴏᴍ ʜᴇʀᴇ',
-                    url=f"https://telegram.me/{temp.U_NAME}?start=getfile-{base_name.replace(' ', '-')}"
-                )],
-                [InlineKeyboardButton(
                     'ɢʀᴏᴜᴘ ᴄʜᴀᴛ',
                     url=GROUP_LINK
                 )]
@@ -438,10 +434,6 @@ async def update_movie_message(bot, base_name):
 
         text = generate_movie_message(movie_doc, base_name)
         buttons = InlineKeyboardMarkup([
-            [InlineKeyboardButton(
-                'ʀᴇǫᴜᴇꜱᴛ ꜰʀᴏᴍ ʜᴇʀᴇ',
-                url=f"https://telegram.me/{temp.U_NAME}?start=getfile-{base_name.replace(' ', '-')}"
-            )],
             [InlineKeyboardButton(
                 'ɢʀᴏᴜᴘ ᴄʜᴀᴛ',
                 url=GROUP_LINK
