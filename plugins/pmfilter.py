@@ -14,7 +14,7 @@ from web.utils import get_name, get_hash
 from urllib.parse import quote_plus
 from database.ia_filterdb import Media, Media2, get_file_details, get_search_results, get_bad_files
 from database.config_db import mdb
-from pyrogram.errors import FloodWait, UserIsBlocked, MessageNotModified, PeerIdInvalid, ChatAdminRequired, UserNotParticipant
+from pyrogram.errors import MessageIdInvalid, UserIsBlocked, MessageNotModified, PeerIdInvalid
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, WebAppInfo, InputMediaPhoto
 from pyrogram.errors.exceptions.bad_request_400 import MediaEmpty, PhotoInvalidDimensions, WebpageMediaEmpty
@@ -60,6 +60,12 @@ async def give_filter(client, message):
                     return await message.delete()
                 await auto_filter(client, message)
         except KeyError:
+            await save_group_settings(message.chat.id, 'auto_ffilter', True)
+            settings = await get_settings(message.chat.id)
+            if settings['auto_ffilter']:
+                await auto_filter(client, message) 
+        except Exception as e:
+            logger.exception("Error in auto filter: %s", e)
             pass
     else:
         search = message.text
@@ -117,6 +123,10 @@ async def refercall(bot, query):
 
 @Client.on_callback_query(filters.regex(r"^next"))
 async def next_page(bot, query):
+    try:
+        await query.answer()
+    except Exception:
+        pass
     ident, req, key, offset = query.data.split("_")
     curr_time = datetime.now(pytz.timezone('Asia/Kolkata')).time()
     if int(req) not in [query.from_user.id, 0]:
@@ -266,26 +276,26 @@ async def next_page(bot, query):
                 if query.message.caption:
                     try:
                         await query.message.edit_caption(caption=cap, reply_markup=InlineKeyboardMarkup(btn), parse_mode=enums.ParseMode.HTML)
-                    except MessageNotModified:
+                    except (MessageNotModified, MessageIdInvalid):
                         pass
                     except Exception as e:
                         logger.exception(e)
                 else:
                     try:
                         await query.message.edit_text(text=cap, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
-                    except MessageNotModified:
+                    except (MessageNotModified, MessageIdInvalid):
                         pass
             else:
                 cap = await get_cap(settings, remaining_seconds, files, query, total, title, offset+1)
                 await query.message.edit_text(text=cap, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
-        except MessageNotModified:
+        except (MessageNotModified, MessageIdInvalid):
             pass
         except Exception as e:
             logger.exception("Failed to send result: %s", e)
     else:
         try:
             await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(btn))
-        except MessageNotModified:
+        except (MessageNotModified, MessageIdInvalid):
             pass
     await query.answer()
 
@@ -429,12 +439,12 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
         cap = await get_cap(settings, remaining_seconds, files, query, total_results, title, offset=1)
         try:
             await query.message.edit_text(text=cap, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
-        except MessageNotModified:
+        except (MessageNotModified, MessageIdInvalid):
             pass
     else:
         try:
             await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(btn))
-        except MessageNotModified:
+        except (MessageNotModified, MessageIdInvalid):
             pass
     await query.answer()
 
@@ -547,12 +557,12 @@ async def filter_languages_cb_handler(client: Client, query: CallbackQuery):
         cap = await get_cap(settings, remaining_seconds, files, query, total_results, title, offset=1)
         try:
             await query.message.edit_text(text=cap, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
-        except MessageNotModified:
+        except (MessageNotModified, MessageIdInvalid):
             pass
     else:
         try:
             await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(btn))
-        except MessageNotModified:
+        except (MessageNotModified, MessageIdInvalid):
             pass
     await query.answer()
 
@@ -664,12 +674,12 @@ async def filter_seasons_cb_handler(client: Client, query: CallbackQuery):
                 reply_markup=InlineKeyboardMarkup(btn),
                 disable_web_page_preview=True,
             )
-        except MessageNotModified:
+        except (MessageNotModified, MessageIdInvalid):
             pass
     else:
         try:
             await query.edit_message_reply_markup(InlineKeyboardMarkup(btn))
-        except MessageNotModified:
+        except (MessageNotModified, MessageIdInvalid):
             pass
     await query.answer()
 
@@ -744,7 +754,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 btn.append([InlineKeyboardButton("♻️ ᴛʀʏ ᴀɢᴀɪɴ ♻️", callback_data=f"checksub#{kk}#{file_id}")])
                 try:
                     await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(btn))
-                except MessageNotModified:
+                except (MessageNotModified, MessageIdInvalid):
                     pass
                 await query.answer("🛑 ᴊᴏɪɴ ᴀʟʟ ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟs ⚠️", show_alert=True)
                 return
@@ -1478,7 +1488,7 @@ async def auto_filter(client, msg, spoll=False):
                         continue
                     else:
                         search = search + x + " "
-                search = re.sub(r"\b(pl(i|e)*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|bro|bruh|broh|helo|that|find|dubbed|link|venum|iruka|pannunga|pannungga|anuppunga|anupunga|anuppungga|anupungga|film|undo|kitti|kitty|tharu|kittumo|kittum|movie|any(one)|with\ssubtitle(s)?)", "", search, flags=re.IGNORECASE)
+                search = re.sub(r"\b(pl(i|e)*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|bro|bruh|broh|helo|that|find|dubbed|link|venum|iruka|pannunga|pannungga|anuppunga|anupunga|anuppungga|anupungga|film|undo|kitti|kitty|tharu|kittumo|kittum|movie|any(one)|with\ssubtitle(s)?)\b", "", search, flags=re.IGNORECASE)
                 search = search.replace("-", " ")
                 search = re.sub(r"[:']", "", search)
                 search = re.sub(r"\s+", " ", search).strip()
