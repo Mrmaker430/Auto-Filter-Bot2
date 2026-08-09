@@ -504,16 +504,20 @@ async def build_final_post_content(session: dict, session_id: int):
                     else:
                         season_info = "MOVIE"
 
-                poster = await generate_landscape_poster(
-                    title=m.get("title", session.get("movie_name")),
-                    description=m.get("plot", ""),
-                    genres=genres_list,
-                    year=m.get("year"),
-                    season_info=season_info,
-                    backdrop_url=m.get("backdrop_url") or m.get("poster_url"),
-                    poster_url=m.get("poster_url"),
-                )
-                session["generated_poster_bytes"] = poster
+                try:
+                    poster = await generate_landscape_poster(
+                        title=m.get("title", session.get("movie_name")),
+                        description=m.get("plot", ""),
+                        genres=genres_list,
+                        year=m.get("year"),
+                        season_info=season_info,
+                        backdrop_url=m.get("backdrop_url") or m.get("poster_url"),
+                        poster_url=m.get("poster_url"),
+                    )
+                    session["generated_poster_bytes"] = poster
+                except Exception as e:
+                    logger.error(f"Error generating landscape poster in build_final_post_content: {e}")
+                    poster = session.get("custom_poster") or (m.get("backdrop_url") if session.get("use_landscape") else m.get("poster_url"))
         else:
             poster = session.get("custom_poster") or (m.get("backdrop_url") if session.get("use_landscape") else m.get("poster_url"))
     kb = build_keyboard(session, session_id)

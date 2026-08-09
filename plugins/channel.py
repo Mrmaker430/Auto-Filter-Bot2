@@ -366,33 +366,39 @@ async def send_movie_update(bot, base_name):
                 and not movie_doc.get("error_tmdb")
                 and not LINK_PREVIEW
             )
+            resized_poster = None
             if movie_doc.get("poster_url") and not LINK_PREVIEW:
-                if use_landscape_generation:
-                    genres_list = [g.strip() for g in movie_doc.get("genres", "").split(",") if g.strip() and g != "N/A"]
-                    season_info = None
-                    if movie_doc.get("tag") == "#SERIES":
-                        seasons = {f.get("season") for f in movie_doc.get("files", []) if f.get("season")}
-                        if seasons:
-                            max_season = max(seasons)
-                            season_info = f"{max_season} Season" if max_season == 1 else f"{max_season} Seasons"
+                try:
+                    if use_landscape_generation:
+                        genres_list = [g.strip() for g in movie_doc.get("genres", "").split(",") if g.strip() and g != "N/A"]
+                        season_info = None
+                        if movie_doc.get("tag") == "#SERIES":
+                            seasons = {f.get("season") for f in movie_doc.get("files", []) if f.get("season")}
+                            if seasons:
+                                max_season = max(seasons)
+                                season_info = f"{max_season} Season" if max_season == 1 else f"{max_season} Seasons"
+                            else:
+                                season_info = "SERIES"
                         else:
-                            season_info = "SERIES"
+                            season_info = "MOVIE"
+
+                        resized_poster = await generate_landscape_poster(
+                            title=movie_doc.get("title") or base_name,
+                            description=movie_doc.get("plot") or "",
+                            genres=genres_list,
+                            year=movie_doc.get("year"),
+                            season_info=season_info,
+                            backdrop_url=movie_doc.get("backdrop_url") or movie_doc.get("poster_url"),
+                            poster_url=movie_doc.get("poster_portrait") or movie_doc.get("poster_url"),
+                        )
                     else:
-                        season_info = "MOVIE"
+                        size = (853, 1280)
+                        resized_poster = await fetch_image(movie_doc["poster_url"], size)
+                except Exception as img_err:
+                    logger.error(f"Error fetching/generating poster, falling back to text: {img_err}")
+                    resized_poster = None
 
-                    resized_poster = await generate_landscape_poster(
-                        title=movie_doc.get("title") or base_name,
-                        description=movie_doc.get("plot") or "",
-                        genres=genres_list,
-                        year=movie_doc.get("year"),
-                        season_info=season_info,
-                        backdrop_url=movie_doc.get("backdrop_url") or movie_doc.get("poster_url"),
-                        poster_url=movie_doc.get("poster_portrait") or movie_doc.get("poster_url"),
-                    )
-                else:
-                    size = (853, 1280)
-                    resized_poster = await fetch_image(movie_doc["poster_url"], size)
-
+            if resized_poster:
                 msg = await bot.send_photo(
                     chat_id=UPDATE_CHANNEL,
                     photo=resized_poster,
