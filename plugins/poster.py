@@ -37,7 +37,7 @@ async def fetch_image(url, size=(860, 1200)):
         return url
     try:
         session = await get_session()
-        async with session.get(url) as response:
+        async with session.get(url, ssl=False) as response:
             if response.status != 200:
                 logger.error(f"Failed to fetch image: {response.status} for {url}")
                 return None
@@ -132,56 +132,120 @@ async def _search_media_id(query: str, api_key=None):
         if not target_query:
             continue
         params = {'query': target_query, 'language': 'en-US', 'page': 1, 'include_adult': 'false'}
-        result = await _tmdb_get('search/multi', params=params, api_key=api_key)
-        multi_results = result.get('results', [])
-        if multi_results:
-            break
+        try:
+            result = await _tmdb_get('search/multi', params=params, api_key=api_key)
+            multi_results = result.get('results', [])
+            if multi_results:
+                break
+        except Exception as e:
+            logger.error(f"Error searching multi in TMDB: {e}")
+            continue
 
     def get_ratio(s1, s2):
         if not s1 or not s2:
             return 0
         return SequenceMatcher(None, s1.lower(), s2.lower()).ratio()
+
+    # Pre-filter and score candidates without fetching details yet.
+    # We will score them based on: ratio, whether year matches, and popularity.
     scored_results = []
     for r in multi_results:
-        ratio = get_ratio(r.get('title') or r.get('name'), title)
-        if ratio >= 0.5:   # Lowered from 0.6 to 0.5 to allow for dropped/modified words
-            scored_results.append((r, ratio))
-
-    if not scored_results:
-        scored_results = [(r, get_ratio(r.get('title') or r.get('name'), title)) for r in multi_results[:10]]
-    today = datetime.utcnow().date()
-    candidates_past, candidates_upcoming = [], []
-    for r, ratio in scored_results:
         mtype = r.get('media_type')
+        if mtype not in ['movie', 'tv']:
+            continue
+
+        r_title = r.get('title') or r.get('name')
+        ratio = get_ratio(r_title, title)
+        if ratio < 0.5:
+            continue
+
         rd_str = r.get('release_date') or r.get('first_air_date')
-        if not (rd_str and mtype in ['movie', 'tv']):
+        if not rd_str:
             continue
         try:
             rd_date = datetime.strptime(rd_str, '%Y-%m-%d').date()
         except ValueError:
             continue
+
         if year:
             if abs(rd_date.year - year) > 1:
                 continue
+
+        scored_results.append((r, ratio, rd_date))
+
+    # If no results match with ratio >= 0.5, fall back to top 10 results from search
+    if not scored_results:
+        for r in multi_results[:10]:
+            mtype = r.get('media_type')
+            if mtype not in ['movie', 'tv']:
+                continue
+
+            r_title = r.get('title') or r.get('name')
+            ratio = get_ratio(r_title, title)
+
+            rd_str = r.get('release_date') or r.get('first_air_date')
+            if not rd_str:
+                continue
+            try:
+                rd_date = datetime.strptime(rd_str, '%Y-%m-%d').date()
+            except ValueError:
+                continue
+
+            if year:
+                if abs(rd_date.year - year) > 1:
+                    continue
+            scored_results.append((r, ratio, rd_date))
+
+    if not scored_results:
+        return None, None
+
+    today = datetime.utcnow().date()
+    candidates_past = []
+    candidates_upcoming = []
+
+    for r, ratio, rd_date in scored_results:
+        candidate = {
+            'type': r.get('media_type'),
+            'id': r['id'],
+            'date': rd_date,
+            'score': r.get('popularity', 0),
+            'ratio': ratio
+        }
+        if rd_date > today:
+            candidates_upcoming.append(candidate)
+        else:
+            candidates_past.append(candidate)
+
+    # Sort past candidates by: ratio (desc), date (desc), score (desc)
+    candidates_past.sort(key=lambda x: (x['ratio'], x['date'], x['score']), reverse=True)
+    # Sort upcoming candidates by: ratio (desc), date (desc), score (desc)
+    candidates_upcoming.sort(key=lambda x: (x['ratio'], x['date'], x['score']), reverse=True)
+
+    sorted_candidates = candidates_past + candidates_upcoming
+
+    # Now, fetch details and check runtime/video status ONLY for the candidates we are considering,
+    # sequentially in sorted order, until we find one that passes.
+    for candidate in sorted_candidates:
+        mtype = candidate['type']
+        cid = candidate['id']
+
         if mtype == 'movie':
             try:
-                details = await _fetch_media_details(mtype, r['id'], api_key=api_key)
+                details = await _fetch_media_details(mtype, cid, api_key=api_key)
                 runtime = details.get('runtime')
                 is_video = details.get('video', False)
 
                 if is_video or (runtime and runtime < MIN_RUNTIME):
                     continue
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error fetching movie details for validation: {e}")
                 continue
-        candidate = {'type': mtype, 'id': r['id'], 'date': rd_date, 'score': r.get('popularity', 0), 'ratio': ratio}
-        (candidates_upcoming if rd_date > today else candidates_past).append(candidate)
-    candidates_past.sort(key=lambda x: (x['ratio'], x['date'], x['score']), reverse=True)
-    candidates_upcoming.sort(key=lambda x: (x['ratio'], x['date'], x['score']), reverse=True)
-    final = candidates_past or candidates_upcoming
-    if not final:
-        return None, None
-    top = final[0]
-    return top['type'], top['id']
+
+        # If we got here, it's either a TV show or a movie that passed the validation.
+        # This is our best candidate! We return it immediately.
+        return mtype, cid
+
+    return None, None
 
 def _process_images(images_data):
     """Organize poster and backdrop images by language."""
