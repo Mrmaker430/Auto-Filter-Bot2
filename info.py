@@ -28,14 +28,14 @@ LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002681646366'))
 BIN_CHANNEL = int(environ.get('BIN_CHANNEL', '-1002681646366'))
 PREMIUM_LOGS = int(environ.get('PREMIUM_LOGS', '-1002681646366'))
 DELETE_CHANNELS = [int(dch) if id_pattern.search(dch) else dch for dch in environ.get('DELETE_CHANNELS', '-1002681646366').split()]
-AUTH_CHANNELS = [int(ch) for ch in environ.get("AUTH_CHANNELS", "-1002097884361").split() if ch and id_pattern.match(ch)]
-AUTH_REQ_CHANNELS = [int(ch) for ch in environ.get("AUTH_REQ_CHANNELS", "-1003784139938").split() if ch and id_pattern.match(ch)]
+AUTH_CHANNELS = [int(ch) for ch in environ.get("AUTH_CHANNELS", "-1002097884361 -1003784139938").split() if ch and id_pattern.match(ch)]
+AUTH_REQ_CHANNELS = [int(ch) for ch in environ.get("AUTH_REQ_CHANNELS", "").split() if ch and id_pattern.match(ch)]
 REQST_CHANNEL = int(ch) if (ch := environ.get("REQST_CHANNEL", "-1003717648037")) and id_pattern.search(ch) else None
 SUPPORT_CHAT_ID = int(ch) if (ch := environ.get("SUPPORT_CHAT_ID", "-1003717648037")) and id_pattern.search(ch) else None
 
 OWNER = int(os.environ.get("OWNER", "1773034985"))
 CHANNEL_LINK = environ.get('CHANNEL_LINK', 'https://t.me/cholochhitro')
-GROUP_LINK = environ.get('GROUP_LINK', 'https://t.me/+ICKFeE2JeI45YTU1')
+GROUP_LINK = environ.get('GROUP_LINK', 'https://t.me/cholochhitroo')
 
 DATABASE_URI = environ.get('DATABASE_URI', "")
 DATABASE_NAME = environ.get('DATABASE_NAME', "Cluster0")
