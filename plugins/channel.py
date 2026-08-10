@@ -6,7 +6,7 @@ from collections import defaultdict
 from .poster import get_movie_detailsx, fetch_image, get_movie_details, generate_landscape_poster
 from database.users_chats_db import db
 from pyrogram import Client, filters, enums
-from info import CHANNELS, UPDATE_CHANNEL, LINK_PREVIEW, ABOVE_PREVIEW, BAD_WORDS, LANDSCAPE_POSTER, TMDB_POSTER, GROUP_LINK
+from info import CHANNELS, UPDATE_CHANNEL, LINK_PREVIEW, ABOVE_PREVIEW, BAD_WORDS, TMDB_POSTER, GROUP_LINK
 from Script import script
 from database.ia_filterdb import save_file
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -306,7 +306,7 @@ async def _process_with_lock(bot, filename, caption, media_info, base_name, proc
             "poster_portrait": details.get("poster_url"),
             "backdrop_url": details.get("backdrop_url"),
             "plot": details.get("plot", ""),
-            "poster_url": details.get("backdrop_url") if LANDSCAPE_POSTER and TMDB_POSTER and details.get("backdrop_url") and not error_tmdb else details.get("poster_url"),
+            "poster_url": details.get("backdrop_url") if TMDB_POSTER and details.get("backdrop_url") and not error_tmdb else details.get("poster_url"),
             "genres": genres,
             "rating": details.get("rating", "N/A"),
             "imdb_url": details.get("url", "") if not TMDB_POSTER or error_tmdb else details.get("tmdb_url"),
@@ -360,8 +360,7 @@ async def send_movie_update(bot, base_name):
                 )]
             ])
             use_landscape_generation = (
-                LANDSCAPE_POSTER
-                and TMDB_POSTER
+                TMDB_POSTER
                 and movie_doc.get("is_backdrop")
                 and not movie_doc.get("error_tmdb")
                 and not LINK_PREVIEW
@@ -391,11 +390,8 @@ async def send_movie_update(bot, base_name):
                             backdrop_url=movie_doc.get("backdrop_url") or movie_doc.get("poster_url"),
                             poster_url=movie_doc.get("poster_portrait") or movie_doc.get("poster_url"),
                         )
-                    else:
-                        size = (853, 1280)
-                        resized_poster = await fetch_image(movie_doc["poster_url"], size)
                 except Exception as img_err:
-                    logger.error(f"Error fetching/generating poster, falling back to text: {img_err}")
+                    logger.error(f"Error generating poster, falling back to text: {img_err}")
                     resized_poster = None
 
             if resized_poster:
