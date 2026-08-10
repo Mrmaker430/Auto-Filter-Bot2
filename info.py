@@ -50,7 +50,7 @@ LINK_PREVIEW = bool(environ.get('LINK_PREVIEW', False))
 ABOVE_PREVIEW = bool(environ.get('ABOVE_PREVIEW', False))
 TMDB_API_KEY = environ.get('TMDB_API_KEY', '98f215cdc731a595c9d36dadca08a1aa')
 TMDB_POSTER = bool(environ.get('TMDB_POSTER', True))
-LANDSCAPE_POSTER = bool(environ.get('LANDSCAPE_POSTER', True))
+LANDSCAPE_POSTER = bool(environ.get('LANDSCAPE_POSTER', False))
 
 IS_VERIFY = is_enabled('IS_VERIFY', False)
 LOG_API_CHANNEL = int(environ.get('LOG_API_CHANNEL', '-1002681646366'))
