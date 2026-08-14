@@ -623,7 +623,7 @@ def draw_telegram_logo(draw, cx, cy, r):
 
 def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title, description, genres, year, season_info, rating="N/A", runtime=None):
     import os
-    from PIL import ImageDraw, ImageFont, ImageFilter, ImageOps
+    from PIL import ImageDraw, ImageFont, ImageFilter, ImageOps, ImageChops
     from io import BytesIO
     import re
 
@@ -642,25 +642,15 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
 
     # Create smooth horizontal and vertical dark gradient overlay for text readability
     # Fades to dark on the bottom and left
-    overlay = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
-    pixels = []
-    for y in range(canvas_h):
-        for x in range(canvas_w):
-            # Horizontal gradient (fade out from left to right)
-            if x < 800:
-                alpha_h = int((1.0 - (x / 800.0)) * 210)
-            else:
-                alpha_h = 0
+    # Highly optimized approach using Pillow's native functions to avoid thread-blocking pure Python loops
+    alpha_h_bytes = bytes(int(max(0, (1.0 - (x / 800.0)) * 210)) for x in range(canvas_w))
+    alpha_v_bytes = bytes(min(255, max(0, int(((y - 250) / 415.0) * 210))) for y in range(canvas_h))
+    alpha_h_img = Image.frombytes('L', (canvas_w, 1), alpha_h_bytes).resize((canvas_w, canvas_h), Image.Resampling.NEAREST)
+    alpha_v_img = Image.frombytes('L', (1, canvas_h), alpha_v_bytes).resize((canvas_w, canvas_h), Image.Resampling.NEAREST)
+    alpha_img = ImageChops.lighter(alpha_h_img, alpha_v_img)
 
-            # Vertical gradient (fade out from bottom to top)
-            if y > 250:
-                alpha_v = int(((y - 250) / 415.0) * 210)
-            else:
-                alpha_v = 0
-
-            alpha = max(alpha_h, alpha_v)
-            pixels.append((0, 0, 0, alpha))
-    overlay.putdata(pixels)
+    black_img = Image.new('L', (canvas_w, canvas_h), 0)
+    overlay = Image.merge('RGBA', (black_img, black_img, black_img, alpha_img))
     bg_img = Image.alpha_composite(bg_img.convert('RGBA'), overlay).convert('RGB')
 
     draw = ImageDraw.Draw(bg_img)
