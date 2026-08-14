@@ -305,6 +305,8 @@ async def _process_with_lock(bot, filename, caption, media_info, base_name, proc
             "title": details.get("title") or base_name,
             "poster_portrait": details.get("poster_url"),
             "backdrop_url": details.get("backdrop_url"),
+            "logo_url": details.get("logo_url"),
+            "runtime": details.get("runtime"),
             "plot": details.get("plot", ""),
             "poster_url": details.get("backdrop_url") if TMDB_POSTER and details.get("backdrop_url") and not error_tmdb else details.get("poster_url"),
             "genres": genres,
@@ -389,6 +391,9 @@ async def send_movie_update(bot, base_name):
                             season_info=season_info,
                             backdrop_url=movie_doc.get("backdrop_url") or movie_doc.get("poster_url"),
                             poster_url=movie_doc.get("poster_portrait") or movie_doc.get("poster_url"),
+                            logo_url=movie_doc.get("logo_url"),
+                            rating=movie_doc.get("rating", "N/A"),
+                            runtime=movie_doc.get("runtime"),
                         )
                 except Exception as img_err:
                     logger.error(f"Error generating poster, falling back to text: {img_err}")

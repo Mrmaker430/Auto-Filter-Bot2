@@ -248,18 +248,27 @@ async def _search_media_id(query: str, api_key=None):
     return None, None
 
 def _process_images(images_data):
-    """Organize poster and backdrop images by language."""
-    posters_by_lang, backdrops_by_lang = {}, {}
+    """Organize poster, backdrop and logo images by language."""
+    posters_by_lang, backdrops_by_lang, logos_by_lang = {}, {}, {}
     for img in images_data.get('posters', []):
         lang = img.get('iso_639_1') or 'no_lang'
         posters_by_lang.setdefault(lang, []).append(f"{TMDB_IMAGE_BASE_URL}{img['file_path']}")
     for img in images_data.get('backdrops', []):
         lang = img.get('iso_639_1') or 'no_lang'
         backdrops_by_lang.setdefault(lang, []).append(f"{TMDB_IMAGE_BASE_URL}{img['file_path']}")
+    for img in images_data.get('logos', []):
+        lang = img.get('iso_639_1') or 'no_lang'
+        logos_by_lang.setdefault(lang, []).append(f"{TMDB_IMAGE_BASE_URL}{img['file_path']}")
     posters_by_lang['all'] = [f"{TMDB_IMAGE_BASE_URL}{i['file_path']}" for i in images_data.get('posters', [])]
     backdrops_by_lang['all'] = [f"{TMDB_IMAGE_BASE_URL}{i['file_path']}" for i in images_data.get('backdrops', [])]
-    languages = sorted(set(posters_by_lang) | set(backdrops_by_lang))
-    return {'posters': posters_by_lang, 'backdrops': backdrops_by_lang, 'available_languages': languages}
+    logos_by_lang['all'] = [f"{TMDB_IMAGE_BASE_URL}{i['file_path']}" for i in images_data.get('logos', [])]
+    languages = sorted(set(posters_by_lang) | set(backdrops_by_lang) | set(logos_by_lang))
+    return {
+        'posters': posters_by_lang,
+        'backdrops': backdrops_by_lang,
+        'logos': logos_by_lang,
+        'available_languages': languages
+    }
 
 
 async def _fetch_tmdb_data(query: str, api_key=None):
@@ -554,8 +563,19 @@ async def get_movie_detailsx(query, id=False, file=None):
                 poster_url = posters[key][0]
                 break
     details['poster_url'] = poster_url.replace("/original/", "/w500/") if poster_url else None
-    backdrops = data.get('images', {}).get('backdrops', {})
+
+    logos = data.get('images', {}).get('logos', {})
     original_language = data.get('images', {}).get('original_language')
+    logo_url = None
+    for key in ('en', original_language, 'xx', 'no_lang'):
+        if key and logos.get(key):
+            logo_url = logos[key][0]
+            break
+    if not logo_url and logos.get('all'):
+        logo_url = logos['all'][0]
+    details['logo_url'] = logo_url.replace("/original/", "/w500/") if logo_url else None
+
+    backdrops = data.get('images', {}).get('backdrops', {})
     backdrop_url = None
     for key in ('en', original_language, 'xx', 'no_lang'):
         if key and backdrops.get(key):
@@ -601,10 +621,11 @@ def draw_telegram_logo(draw, cx, cy, r):
     draw.polygon(p3, fill='#B5B5B5')
 
 
-def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description, genres, year, season_info):
+def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title, description, genres, year, season_info, rating="N/A", runtime=None):
     import os
     from PIL import ImageDraw, ImageFont, ImageFilter, ImageOps
-    import textwrap
+    from io import BytesIO
+    import re
 
     canvas_w, canvas_h = 1280, 720
 
@@ -615,25 +636,32 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
         try:
             bd_img = Image.open(BytesIO(backdrop_bytes))
             bd_img = ImageOps.fit(bd_img, (canvas_w, canvas_h), centering=(0.5, 0.5))
-
-            # Create gradient mask (0 = solid bg, 255 = backdrop)
-            mask = Image.new('L', (canvas_w, canvas_h))
-            mask_pixels = []
-            for y in range(canvas_h):
-                for x in range(canvas_w):
-                    if x < 400:
-                        val = 0
-                    elif x < 1150:
-                        val = int(((x - 400) / 750) * 90)
-                    else:
-                        val = 90
-                    mask_pixels.append(val)
-            mask.putdata(mask_pixels)
-
-            # Paste the clean (unblurred) backdrop onto solid background using the mask
-            bg_img.paste(bd_img, (0, 0), mask)
+            bg_img.paste(bd_img, (0, 0))
         except Exception as e:
             logger.error(f"Failed to open backdrop: {e}")
+
+    # Create smooth horizontal and vertical dark gradient overlay for text readability
+    # Fades to dark on the bottom and left
+    overlay = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
+    pixels = []
+    for y in range(canvas_h):
+        for x in range(canvas_w):
+            # Horizontal gradient (fade out from left to right)
+            if x < 800:
+                alpha_h = int((1.0 - (x / 800.0)) * 210)
+            else:
+                alpha_h = 0
+
+            # Vertical gradient (fade out from bottom to top)
+            if y > 250:
+                alpha_v = int(((y - 250) / 415.0) * 210)
+            else:
+                alpha_v = 0
+
+            alpha = max(alpha_h, alpha_v)
+            pixels.append((0, 0, 0, alpha))
+    overlay.putdata(pixels)
+    bg_img = Image.alpha_composite(bg_img.convert('RGBA'), overlay).convert('RGB')
 
     draw = ImageDraw.Draw(bg_img)
 
@@ -650,144 +678,217 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
     if not os.path.exists(font_path_reg):
         font_path_reg = None
 
-    title_text = str(title).upper()
-    title_font_size = 72
-    if len(title_text) > 25:
-        title_font_size = 58
-    if len(title_text) > 40:
-        title_font_size = 46
-
     try:
-        title_font = ImageFont.truetype(font_path_bold, title_font_size) if font_path_bold else ImageFont.load_default()
-        desc_font = ImageFont.truetype(font_path_reg, 30) if font_path_reg else ImageFont.load_default()
-        badge_font = ImageFont.truetype(font_path_bold, 24) if font_path_bold else ImageFont.load_default()
-        handle_font = ImageFont.truetype(font_path_bold, 26) if font_path_bold else ImageFont.load_default()
+        title_font = ImageFont.truetype(font_path_bold, 48) if font_path_bold else ImageFont.load_default()
+        desc_font = ImageFont.truetype(font_path_reg, 19) if font_path_reg else ImageFont.load_default()
+        badge_font = ImageFont.truetype(font_path_bold, 18) if font_path_bold else ImageFont.load_default()
+        copyright_font = ImageFont.truetype(font_path_bold, 24) if font_path_bold else ImageFont.load_default()
     except Exception as e:
         logger.error(f"Font load error: {e}")
-        title_font = desc_font = badge_font = handle_font = ImageFont.load_default()
+        title_font = desc_font = badge_font = copyright_font = ImageFont.load_default()
 
-    title_lines = []
-    current_line = ""
-    for word in title_text.split():
-        test_line = f"{current_line} {word}".strip()
-        bbox = draw.textbbox((0, 0), test_line, font=title_font)
-        line_w = bbox[2] - bbox[0]
-        if line_w < 720:
-            current_line = test_line
-        else:
-            if current_line:
-                title_lines.append(current_line)
-            current_line = word
-    if current_line:
-        title_lines.append(current_line)
+    # --- Draw Title (Logo or Normal Text) ---
+    logo_drawn = False
+    if logo_bytes:
+        try:
+            logo_img = Image.open(BytesIO(logo_bytes))
+            if logo_img.mode != 'RGBA':
+                logo_img = logo_img.convert('RGBA')
+            lw, lh = logo_img.size
+            aspect = lw / lh
+            # Try matching max height first
+            new_h = 120
+            new_w = int(new_h * aspect)
+            if new_w > 400:
+                new_w = 400
+                new_h = int(new_w / aspect)
+            logo_resized = logo_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
-    y_cursor = 110
-    for i, line in enumerate(title_lines):
-        draw.text((50, y_cursor), line, fill='white', font=title_font)
-        bbox = draw.textbbox((0, 0), line, font=title_font)
-        line_w = bbox[2] - bbox[0]
-        line_h = bbox[3] - bbox[1]
+            temp_logo = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
+            # Paste logo on left side, directly above badges (y_badges = 510, with margin bottom of logo is y=490)
+            logo_x = 50
+            logo_y = 490 - new_h
+            temp_logo.paste(logo_resized, (logo_x, logo_y))
+            bg_img = Image.alpha_composite(bg_img.convert('RGBA'), temp_logo).convert('RGB')
+            draw = ImageDraw.Draw(bg_img)
+            logo_drawn = True
+        except Exception as e:
+            logger.error(f"Failed to load/draw movie logo: {e}")
 
-        if i == 0:
-            line_y = y_cursor + line_h + 15
-            draw.rectangle([50, line_y, 50 + min(line_w, 350), line_y + 6], fill='#3b82f6')
+    if not logo_drawn:
+        # Fall back to normal text title
+        title_text = str(title).upper()
+        # Wrap title
+        title_lines = []
+        current_line = ""
+        for word in title_text.split():
+            test_line = f"{current_line} {word}".strip()
+            bbox = draw.textbbox((0, 0), test_line, font=title_font)
+            line_w = bbox[2] - bbox[0]
+            if line_w < 750:
+                current_line = test_line
+            else:
+                if current_line:
+                    title_lines.append(current_line)
+                current_line = word
+        if current_line:
+            title_lines.append(current_line)
 
-        y_cursor += line_h + 22
+        title_lines = title_lines[:2] # Limit text title to 2 lines
+        title_y = 490
+        # Calculate total height to offset title_y
+        total_title_h = 0
+        line_heights = []
+        for line in title_lines:
+            bbox = draw.textbbox((0, 0), line, font=title_font)
+            line_heights.append(bbox[3] - bbox[1])
+            total_title_h += (bbox[3] - bbox[1]) + 10
 
-    y_cursor += 15
+        y_cursor = title_y - total_title_h
+        for i, line in enumerate(title_lines):
+            draw.text((50, y_cursor), line, fill='white', font=title_font)
+            y_cursor += line_heights[i] + 10
 
-    desc_text = str(description or "")
-    desc_lines = []
-    current_line = ""
-    for word in desc_text.split():
-        test_line = f"{current_line} {word}".strip()
-        bbox = draw.textbbox((0, 0), test_line, font=desc_font)
-        line_w = bbox[2] - bbox[0]
-        if line_w < 720:
-            current_line = test_line
-        else:
-            if current_line:
-                desc_lines.append(current_line)
-            current_line = word
-    if current_line:
-        desc_lines.append(current_line)
+    # --- Draw Badges (Pills) ---
+    def draw_pill(draw, x, y, text, font, bg_color, text_color='white', border_color=None, border_width=2):
+        has_star = text.startswith("★")
+        display_text = text[1:].strip() if has_star else text
 
-    desc_lines = desc_lines[:3]
-    for line in desc_lines:
-        draw.text((50, y_cursor), line, fill='#F0F0F0', font=desc_font)
-        bbox = draw.textbbox((0, 0), line, font=desc_font)
-        y_cursor += (bbox[3] - bbox[1]) + 12
-
-    y_cursor += 20
-
-    badges = []
-    if season_info:
-        badges.append((season_info.upper(), '#1d4ed8'))
-    elif year:
-        badges.append(('MOVIE', '#1d4ed8'))
-
-    if isinstance(genres, list):
-        for g in genres[:2]:
-            badges.append((g.upper(), '#2563eb'))
-    elif isinstance(genres, str) and genres:
-        for g in [g.strip() for g in genres.split(",") if g.strip()][:2]:
-            if g.upper() != 'N/A':
-                badges.append((g.upper(), '#2563eb'))
-
-    if year:
-        badges.append((str(year), '#1d4ed8'))
-
-    badge_x = 50
-    badge_y = y_cursor
-    badge_pill_h = 40
-    for text, color in badges:
-        bbox = draw.textbbox((0, 0), text, font=badge_font)
+        bbox = draw.textbbox((0, 0), display_text, font=font)
         tw = bbox[2] - bbox[0]
         th = bbox[3] - bbox[1]
         bx_offset = bbox[1]
 
-        pill_w = tw + 36
-        pill_h = th + 20
-        badge_pill_h = pill_h
+        star_w = 22 if has_star else 0
+        pill_w = tw + 32 + star_w
+        pill_h = 36
 
-        draw.rounded_rectangle([badge_x, badge_y, badge_x + pill_w, badge_y + pill_h], radius=pill_h // 2, fill=color)
+        if bg_color is None: # transparent/border-only badge
+            draw.rounded_rectangle([x, y, x + pill_w, y + pill_h], radius=pill_h // 2, outline=border_color, width=border_width)
+        else:
+            draw.rounded_rectangle([x, y, x + pill_w, y + pill_h], radius=pill_h // 2, fill=bg_color)
 
-        tx = badge_x + 18
-        ty = badge_y + (pill_h - th) // 2 - bx_offset
-        draw.text((tx, ty), text, fill='white', font=badge_font)
+        tx = x + 16
+        if has_star:
+            import math
+            star_cx = x + 24
+            star_cy = y + 18
+            r_out = 9
+            r_in = 4
+            points = []
+            for idx in range(10):
+                r = r_out if idx % 2 == 0 else r_in
+                angle = idx * math.pi / 5 - math.pi / 2
+                sx = star_cx + r * math.cos(angle)
+                sy = star_cy + r * math.sin(angle)
+                points.append((sx, sy))
+            draw.polygon(points, fill='#FFD700') # Gold star
+            tx += star_w
 
-        badge_x += pill_w + 15
+        ty = y + (pill_h - th) // 2 - bx_offset
+        draw.text((tx, ty), display_text, fill=text_color, font=font)
+        return pill_w
 
-    handle_x = 50
-    calculated_handle_y = badge_y + (badge_pill_h if badges else 0) + 45
-    handle_y = max(530, min(calculated_handle_y, 600))
-    handle_text = "@cholochhitro"
+    # Row 1 Badges (Rating, IMDb, Year) at y = 510
+    badge_x = 50
+    badge_y1 = 510
 
-    bbox = draw.textbbox((0, 0), handle_text, font=handle_font)
-    htw = bbox[2] - bbox[0]
-    hth = bbox[3] - bbox[1]
-    h_offset = bbox[1]
+    # 1. Rating
+    r_val = str(rating or "N/A").strip()
+    if r_val and r_val != "N/A":
+        badge_x += draw_pill(draw, badge_x, badge_y1, f"★ {r_val}", badge_font, bg_color='#E58E26') + 12
 
-    hpill_h = 60
-    hpill_w = 48 + htw + 35
+    # 2. IMDb
+    badge_x += draw_pill(draw, badge_x, badge_y1, "IMDb", badge_font, bg_color='#F5C518', text_color='black') + 12
 
-    handle_overlay = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
-    handle_draw = ImageDraw.Draw(handle_overlay)
-    handle_draw.rounded_rectangle([handle_x, handle_y, handle_x + hpill_w, handle_y + hpill_h], radius=hpill_h // 2, fill=(30, 58, 138, 150))
+    # 3. Year
+    year_str = str(year or "2024").strip()
+    draw_pill(draw, badge_x, badge_y1, year_str, badge_font, bg_color=None, border_color='white', border_width=2)
 
-    bg_img = Image.alpha_composite(bg_img.convert('RGBA'), handle_overlay).convert('RGB')
-    draw = ImageDraw.Draw(bg_img)
+    # Row 2 Badges (Type, Runtime, Genres) at y = 560
+    badge_x = 50
+    badge_y2 = 560
 
-    tcx = handle_x + 30
-    tcy = handle_y + (hpill_h // 2)
-    tr = 18
-    draw_telegram_logo(draw, tcx, tcy, tr)
+    # 1. Type
+    type_str = "SERIES" if season_info and "SEASON" in str(season_info).upper() else "MOVIE"
+    badge_x += draw_pill(draw, badge_x, badge_y2, type_str, badge_font, bg_color='#D63031') + 12
 
-    ty = handle_y + (hpill_h - hth) // 2 - h_offset
-    draw.text((handle_x + 55, ty), handle_text, fill='white', font=handle_font)
+    # 2. Runtime
+    def format_runtime(runtime_str):
+        if not runtime_str or runtime_str == "N/A":
+            return None
+        match = re.search(r'(\d+)', str(runtime_str))
+        if match:
+            minutes = int(match.group(1))
+            hours = minutes // 60
+            mins = minutes % 60
+            if hours > 0:
+                return f"{hours}H {mins}M" if mins > 0 else f"{hours}H"
+            return f"{mins}M"
+        return None
 
-    px, py = 847, 80
-    pw, ph = 373, 560
+    fmt_runtime = format_runtime(runtime)
+    if fmt_runtime:
+        badge_x += draw_pill(draw, badge_x, badge_y2, fmt_runtime, badge_font, bg_color='#8E44AD') + 12
+
+    # 3. Genres
+    genres_to_draw = []
+    if isinstance(genres, list):
+        genres_to_draw = [g.strip().upper() for g in genres if g.strip()][:2]
+    elif isinstance(genres, str) and genres:
+        genres_to_draw = [g.strip().upper() for g in genres.split(",") if g.strip() and g.strip().upper() != 'N/A'][:2]
+
+    genre_colors = ['#2980B9', '#D35400']
+    for idx, genre_text in enumerate(genres_to_draw):
+        color = genre_colors[idx] if idx < len(genre_colors) else '#2980B9'
+        badge_x += draw_pill(draw, badge_x, badge_y2, genre_text, badge_font, bg_color=color) + 12
+
+    # --- Draw Plot (max 2 lines) at y = 612 ---
+    def wrap_text_to_lines(draw, text, font, max_width, max_lines=2):
+        words = text.split()
+        lines = []
+        current_line = ""
+        for word in words:
+            test_line = f"{current_line} {word}".strip()
+            bbox = draw.textbbox((0, 0), test_line, font=font)
+            w = bbox[2] - bbox[0]
+            if w <= max_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                current_line = word
+                if len(lines) == max_lines:
+                    lines[-1] = lines[-1].rstrip(".,!?;:") + "..."
+                    return lines
+        if current_line and len(lines) < max_lines:
+            lines.append(current_line)
+        elif current_line and len(lines) == max_lines:
+            lines[-1] = lines[-1].rstrip(".,!?;:") + "..."
+        return lines
+
+    desc_text = str(description or "").strip()
+    if desc_text:
+        plot_lines = wrap_text_to_lines(draw, desc_text, desc_font, max_width=950, max_lines=2)
+        y_plot = 612
+        for line in plot_lines:
+            draw.text((50, y_plot), line, fill='#F0F0F0', font=desc_font)
+            bbox = draw.textbbox((0, 0), line, font=desc_font)
+            y_plot += (bbox[3] - bbox[1]) + 8
+
+    # --- Draw Copyright Text in Top Right ---
+    copyright_text = "@cholochhitro"
+    c_bbox = draw.textbbox((0, 0), copyright_text, font=copyright_font)
+    ctw = c_bbox[2] - c_bbox[0]
+    cx = 1230 - ctw
+    cy = 75 # Content area top begins at 54, so y=75 has a nice padding of 21px
+    # Subtle drop shadow for copyright text
+    draw.text((cx + 1, cy + 1), copyright_text, fill=(0, 0, 0, 150), font=copyright_font)
+    draw.text((cx, cy), copyright_text, fill=(255, 255, 255, 220), font=copyright_font)
+
+    # --- Draw Small Vertical Poster (Bottom Right) ---
+    px, py = 1050, 390
+    pw, ph = 160, 240
 
     if poster_bytes:
         try:
@@ -796,7 +897,7 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
 
             mask = Image.new('L', (pw, ph), 0)
             mask_draw = ImageDraw.Draw(mask)
-            mask_draw.rounded_rectangle([0, 0, pw, ph], radius=16, fill=255)
+            mask_draw.rounded_rectangle([0, 0, pw, ph], radius=12, fill=255)
 
             temp_layer = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
             temp_layer.paste(poster_img.convert('RGBA'), (px, py), mask)
@@ -804,9 +905,15 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
             bg_img = Image.alpha_composite(bg_img.convert('RGBA'), temp_layer).convert('RGB')
             draw = ImageDraw.Draw(bg_img)
 
-            draw.rounded_rectangle([px - 2, py - 2, px + pw + 2, py + ph + 2], radius=18, outline='white', width=4)
+            draw.rounded_rectangle([px - 2, py - 2, px + pw + 2, py + ph + 2], radius=14, outline='white', width=4)
         except Exception as e:
             logger.error(f"Failed to fetch/paste vertical poster: {e}")
+
+    # --- Draw Widescreen Cinematic Black Bars (Top & Bottom) ---
+    # Top bar: 0 to 54
+    draw.rectangle([0, 0, canvas_w, 54], fill='black')
+    # Bottom bar: 665 to 720 (720 - 55 = 665)
+    draw.rectangle([0, 665, canvas_w, canvas_h], fill='black')
 
     out = BytesIO()
     bg_img.save(out, format="JPEG", quality=85)
@@ -814,7 +921,7 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, title, description
     return out
 
 
-async def generate_landscape_poster(title, description, genres, year, season_info, backdrop_url, poster_url):
+async def generate_landscape_poster(title, description, genres, year, season_info, backdrop_url, poster_url, logo_url=None, rating="N/A", runtime=None):
     import asyncio
 
     tasks = []
@@ -828,7 +935,12 @@ async def generate_landscape_poster(title, description, genres, year, season_inf
     else:
         tasks.append(asyncio.sleep(0, result=None))
 
-    backdrop_bytes, poster_bytes = await asyncio.gather(*tasks)
+    if logo_url:
+        tasks.append(fetch_image_bytes(logo_url))
+    else:
+        tasks.append(asyncio.sleep(0, result=None))
+
+    backdrop_bytes, poster_bytes, logo_bytes = await asyncio.gather(*tasks)
 
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
@@ -836,9 +948,12 @@ async def generate_landscape_poster(title, description, genres, year, season_inf
         _draw_landscape_poster_sync,
         backdrop_bytes,
         poster_bytes,
+        logo_bytes,
         title,
         description,
         genres,
         year,
-        season_info
+        season_info,
+        rating,
+        runtime
     )
