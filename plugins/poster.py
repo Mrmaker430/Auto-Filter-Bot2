@@ -876,15 +876,73 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
             bbox = draw.textbbox((0, 0), line, font=desc_font)
             y_plot += (bbox[3] - bbox[1]) + 8
 
-    # --- Draw Copyright Text in Top Right ---
+    # --- Draw Copyright Badge in Top Right ---
     copyright_text = "@cholochhitro"
     c_bbox = draw.textbbox((0, 0), copyright_text, font=copyright_font)
     ctw = c_bbox[2] - c_bbox[0]
-    cx = 1230 - ctw
-    cy = 75 # Content area top begins at 54, so y=75 has a nice padding of 21px
-    # Subtle drop shadow for copyright text
-    draw.text((cx + 1, cy + 1), copyright_text, fill=(0, 0, 0, 150), font=copyright_font)
-    draw.text((cx, cy), copyright_text, fill=(255, 255, 255, 220), font=copyright_font)
+    cth = c_bbox[3] - c_bbox[1]
+
+    # Capsule dimensions and placement
+    pill_h = 50
+    # Left margin (12) + Telegram logo diameter (30, radius 15) + Gap (12) + Text width (ctw) + Right margin (18)
+    r = 15
+    pill_w = 12 + (2 * r) + 12 + ctw + 18
+
+    # Place capsule so its right edge is at x=1230
+    x_start = 1230 - pill_w
+    # Content area top begins at 54, so y=70 places it nicely below the top black bar with some spacing
+    y_start = 70
+
+    try:
+        # 1. Crop background region for blur
+        pill_box = (x_start, y_start, x_start + pill_w, y_start + pill_h)
+        cropped = bg_img.crop(pill_box)
+
+        # 2. Apply strong blur for frosted glass effect
+        blurred = cropped.filter(ImageFilter.GaussianBlur(20))
+        blurred = blurred.convert('RGBA')
+
+        # 3. Apply a translucent white sheen overlay
+        overlay = Image.new('RGBA', blurred.size, (255, 255, 255, 45))
+        frosted = Image.alpha_composite(blurred, overlay)
+
+        # 4. Create capsule mask
+        mask = Image.new('L', (pill_w, pill_h), 0)
+        mask_draw = ImageDraw.Draw(mask)
+        mask_draw.rounded_rectangle([0, 0, pill_w, pill_h], radius=pill_h // 2, fill=255)
+
+        # 5. Composite back onto bg_img
+        bg_rgba = bg_img.convert('RGBA')
+        temp_layer = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
+        temp_layer.paste(frosted, (x_start, y_start), mask)
+        bg_rgba = Image.alpha_composite(bg_rgba, temp_layer)
+
+        # 6. Draw semi-transparent white border
+        border_layer = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
+        border_draw = ImageDraw.Draw(border_layer)
+        border_draw.rounded_rectangle([x_start, y_start, x_start + pill_w, y_start + pill_h], radius=pill_h // 2, outline=(255, 255, 255, 150), width=1)
+        bg_rgba = Image.alpha_composite(bg_rgba, border_layer)
+        bg_img = bg_rgba.convert('RGB')
+        draw = ImageDraw.Draw(bg_img)
+    except Exception as e:
+        logger.error(f"Failed to generate frosted glass copyright badge: {e}")
+        # Fallback to simple capsule without blur if anything fails
+        draw.rounded_rectangle([x_start, y_start, x_start + pill_w, y_start + pill_h], radius=pill_h // 2, fill=(0, 0, 0, 150), outline='white', width=2)
+
+    try:
+        # 7. Draw Telegram logo inside the capsule
+        logo_cx = x_start + 12 + r
+        logo_cy = y_start + pill_h // 2
+        draw_telegram_logo(draw, logo_cx, logo_cy, r)
+
+        # 8. Draw vertically centered copyright text inside the capsule
+        tx = x_start + 12 + (2 * r) + 12
+        ty = y_start + (pill_h - cth) // 2 - c_bbox[1]
+        # Draw text with subtle shadow first for readability on any background
+        draw.text((tx + 1, ty + 1), copyright_text, fill=(0, 0, 0, 120), font=copyright_font)
+        draw.text((tx, ty), copyright_text, fill=(255, 255, 255, 255), font=copyright_font)
+    except Exception as e:
+        logger.error(f"Failed to draw capsule contents: {e}")
 
     # --- Draw Small Vertical Poster (Bottom Right) ---
     px, py = 1050, 390
