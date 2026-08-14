@@ -513,6 +513,9 @@ async def build_final_post_content(session: dict, session_id: int):
                         season_info=season_info,
                         backdrop_url=m.get("backdrop_url") or m.get("poster_url"),
                         poster_url=m.get("poster_url"),
+                        logo_url=m.get("logo_url"),
+                        rating=m.get("rating", "N/A"),
+                        runtime=m.get("runtime"),
                     )
                     session["generated_poster_bytes"] = poster
                 except Exception as e:
