@@ -477,8 +477,11 @@ async def list_users(bot, message):
     users = await db.get_all_users()
     out = "Users Saved In DB Are:\n\n"
     async for user in users:
-        out += f"• <a href=tg://user?id={user['id']}>{user['name']}</a>"
-        if user['ban_status']['is_banned']:
+        user_id = user.get('id')
+        name = user.get('name', 'User')
+        ban_status = user.get('ban_status', {}) if isinstance(user.get('ban_status'), dict) else {}
+        out += f"• <a href=tg://user?id={user_id}>{name}</a>"
+        if ban_status.get('is_banned'):
             out += '( Banned User )'
         out += '\n'
     try:
@@ -486,7 +489,11 @@ async def list_users(bot, message):
     except MessageTooLong:
         with open('users.txt', 'w+') as outfile:
             outfile.write(out)
-        await message.reply_document('users.txt', caption="List Of Users")
+        try:
+            await message.reply_document('users.txt', caption="List Of Users")
+        finally:
+            if os.path.exists('users.txt'):
+                os.remove('users.txt')
 
 @Client.on_message(filters.command('chats') & filters.user(ADMINS))
 async def list_chats(bot, message):
@@ -494,8 +501,11 @@ async def list_chats(bot, message):
     chats = await db.get_all_chats()
     out = "Chats Saved In DB Are:\n\n"
     async for chat in chats:
-        out += f"• {chat['title']} `{chat['id']}`"
-        if chat['chat_status']['is_disabled']:
+        chat_id = chat.get('id')
+        title = chat.get('title', 'Group')
+        chat_status = chat.get('chat_status', {}) if isinstance(chat.get('chat_status'), dict) else {}
+        out += f"• {title} `{chat_id}`"
+        if chat_status.get('is_disabled'):
             out += '( Disabled Chat )'
         out += '\n'
     try:
@@ -503,7 +513,11 @@ async def list_chats(bot, message):
     except MessageTooLong:
         with open('chats.txt', 'w+') as outfile:
             outfile.write(out)
-        await message.reply_document('chats.txt', caption="List Of Chats")
+        try:
+            await message.reply_document('chats.txt', caption="List Of Chats")
+        finally:
+            if os.path.exists('chats.txt'):
+                os.remove('chats.txt')
 
 @Client.on_message(filters.command('clean_groups') & filters.user(ADMINS))
 async def clean_groups_handler(client, message):
