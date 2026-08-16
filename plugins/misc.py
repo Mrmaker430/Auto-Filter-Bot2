@@ -424,11 +424,6 @@ async def save_group(bot, message):
     tb = [u.id for u in message.new_chat_members]
     buttons = [[InlineKeyboardButton('👨‍💻 𝖠𝖽𝗆𝗂𝗇', user_id=int(OWNER))]]
     if temp.ME in tb:
-        if not await db.get_chat(message.chat.id):
-            total=await bot.get_chat_members_count(message.chat.id)
-            techifybots = message.from_user.mention if message.from_user else "Anonymous"
-            await bot.send_message(LOG_CHANNEL, script.LOG_TEXT_G.format(message.chat.title, message.chat.id, total, techifybots))       
-            await db.add_chat(message.chat.id, message.chat.title)
         if message.chat.id in temp.BANNED_CHATS:
             k = await message.reply(text=script.CHAT_RESTRICTED_TXT, reply_markup=InlineKeyboardMarkup(buttons))
             try:
@@ -437,11 +432,30 @@ async def save_group(bot, message):
                 pass
             await bot.leave_chat(message.chat.id)
             return
+
+        if not await db.get_chat(message.chat.id):
+            user_name = message.from_user.first_name if message.from_user else "Unknown"
+            user_id = message.from_user.id if message.from_user else "Unknown"
+            approval_text = f"Group Name - {message.chat.title} {message.chat.id}\nOwner - {user_name} {user_id}"
+            approval_buttons = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("Approve", callback_data=f"approve_grp#{message.chat.id}#{user_id}"),
+                    InlineKeyboardButton("Reject", callback_data=f"reject_grp#{message.chat.id}#{user_id}")
+                ]
+            ])
+            try:
+                await bot.send_message(int(OWNER), approval_text, reply_markup=approval_buttons)
+            except Exception as e:
+                logger.error(f"Failed to send approval request to owner: {e}")
+            await message.reply_text("<b>Your request to add the bot in this group has been sent to the owner for approval.</b>")
+            return
+
         await message.reply_text(text=script.BOT_ADD_TXT.format(message.chat.title), reply_markup=InlineKeyboardMarkup(buttons))
-        try:
-            await db.connect_group(message.chat.id, message.from_user.id)
-        except Exception as e:
-            logging.error(f"DB error connecting group: {e}")
+        if message.from_user:
+            try:
+                await db.connect_group(message.chat.id, message.from_user.id)
+            except Exception as e:
+                logging.error(f"DB error connecting group: {e}")
     else:
         settings = await get_settings(message.chat.id)
 
@@ -467,6 +481,104 @@ async def save_group(bot, message):
                     temp.MELCOW['welcome'] = None 
             except:
                 pass
+
+@Client.on_callback_query(filters.regex(r"^approve_grp#"))
+async def approve_group_callback(client: Client, query: CallbackQuery):
+    if query.from_user.id != int(OWNER) and query.from_user.id not in ADMINS:
+        return await query.answer("You are not authorized to perform this action.", show_alert=True)
+
+    _, chat_id, user_id = query.data.split("#")
+    chat_id = int(chat_id)
+    user_id = int(user_id) if user_id != "Unknown" else None
+
+    try:
+        chat = await client.get_chat(chat_id)
+        chat_title = chat.title
+    except Exception as e:
+        logger.error(f"Error fetching chat in approve_grp: {e}")
+        chat_title = str(chat_id)
+
+    if not await db.get_chat(chat_id):
+        await db.add_chat(chat_id, chat_title)
+
+    if user_id:
+        try:
+            await db.connect_group(chat_id, user_id)
+        except Exception as e:
+            logger.error(f"Error connecting group in approve_grp: {e}")
+
+    try:
+        total = await client.get_chat_members_count(chat_id)
+    except Exception:
+        total = "Unknown"
+
+    if user_id:
+        try:
+            u = await client.get_users(user_id)
+            user_mention = u.mention
+        except Exception:
+            user_mention = str(user_id)
+    else:
+        user_mention = "Unknown"
+
+    try:
+        await client.send_message(LOG_CHANNEL, script.LOG_TEXT_G.format(chat_title, chat_id, total, user_mention))
+    except Exception as e:
+        logger.error(f"Failed to send log message to LOG_CHANNEL: {e}")
+
+    if user_id:
+        try:
+            await client.send_message(user_id, f"<b>Your request to add the bot to {chat_title} ({chat_id}) has been approved! ✅</b>")
+        except Exception as e:
+            logger.error(f"Failed to send approval message to user {user_id}: {e}")
+
+    try:
+        buttons = [[InlineKeyboardButton('👨‍💻 𝖠𝖽𝗆𝗂𝗇', user_id=int(OWNER))]]
+        await client.send_message(chat_id, script.BOT_ADD_TXT.format(chat_title), reply_markup=InlineKeyboardMarkup(buttons))
+    except Exception as e:
+        logger.error(f"Failed to send BOT_ADD_TXT to group {chat_id}: {e}")
+
+    await query.message.edit_text(f"Group Name - {chat_title} {chat_id}\nOwner - {user_mention} {user_id}\n\n<b>Status: Approved ✅</b>")
+    await query.answer("Group approved successfully!")
+
+@Client.on_callback_query(filters.regex(r"^reject_grp#"))
+async def reject_group_callback(client: Client, query: CallbackQuery):
+    if query.from_user.id != int(OWNER) and query.from_user.id not in ADMINS:
+        return await query.answer("You are not authorized to perform this action.", show_alert=True)
+
+    _, chat_id, user_id = query.data.split("#")
+    chat_id = int(chat_id)
+    user_id = int(user_id) if user_id != "Unknown" else None
+
+    try:
+        chat = await client.get_chat(chat_id)
+        chat_title = chat.title
+    except Exception as e:
+        logger.error(f"Error fetching chat in reject_grp: {e}")
+        chat_title = str(chat_id)
+
+    if user_id:
+        try:
+            u = await client.get_users(user_id)
+            user_mention = u.mention
+        except Exception:
+            user_mention = str(user_id)
+    else:
+        user_mention = "Unknown"
+
+    if user_id:
+        try:
+            await client.send_message(user_id, f"<b>Your request to add the bot to {chat_title} ({chat_id}) has been rejected. ❌</b>")
+        except Exception as e:
+            logger.error(f"Failed to send rejection message to user {user_id}: {e}")
+
+    try:
+        await client.leave_chat(chat_id)
+    except Exception as e:
+        logger.error(f"Failed to leave chat {chat_id}: {e}")
+
+    await query.message.edit_text(f"Group Name - {chat_title} {chat_id}\nOwner - {user_mention} {user_id}\n\n<b>Status: Rejected ❌</b>")
+    await query.answer("Group rejected.")
 
 @Client.on_message(filters.chat(DELETE_CHANNELS) & media_filter)
 async def deletemultiplemedia(bot, message):
