@@ -38,16 +38,14 @@ SPELL_CHECK = {}
 
 @Client.on_message(filters.group & filters.text & filters.incoming & ~filters.regex(r"^/"))
 async def give_filter(client, message):
+    if not await db.get_chat(message.chat.id):
+        return
     if EMOJI_MODE:
         try:
             await message.react(emoji=random.choice(REACTIONS), big=True)
         except Exception:
             await message.react(emoji="⚡️")
             pass
-    if not await db.get_chat(message.chat.id):
-        await db.add_chat(message.chat.id, message.chat.title)
-        total=await client.get_chat_members_count(message.chat.id)
-        await client.send_message(LOG_CHANNEL, script.LOG_TEXT_G.format(message.chat.title, message.chat.id, total, "Unknown"))
 
     await mdb.update_top_messages(message.from_user.id, message.text)
     if message.chat.id != SUPPORT_CHAT_ID:
