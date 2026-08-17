@@ -11,6 +11,9 @@ aiohttp
 telegraph
 pymediainfo-pyrofork
 
+yt-dlp
+httpx
+
 # Other tools
 opencv-python-headless==4.8.1.78
 python-dotenv==1.2.2
