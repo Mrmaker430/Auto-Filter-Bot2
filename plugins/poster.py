@@ -642,8 +642,9 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
 
     # Create smooth horizontal and vertical dark gradient overlay for text readability
     # Fades to dark on the bottom and left
-    alpha_h_bytes = bytes(int(max(0, (1.0 - (x / 800.0)) * 230)) for x in range(canvas_w))
-    alpha_v_bytes = bytes(min(255, max(0, int(((y - 200) / 465.0) * 230))) for y in range(canvas_h))
+    # Highly optimized approach using Pillow's native functions to avoid thread-blocking pure Python loops
+    alpha_h_bytes = bytes(int(max(0, (1.0 - (x / 800.0)) * 210)) for x in range(canvas_w))
+    alpha_v_bytes = bytes(min(255, max(0, int(((y - 250) / 415.0) * 210))) for y in range(canvas_h))
     alpha_h_img = Image.frombytes('L', (canvas_w, 1), alpha_h_bytes).resize((canvas_w, canvas_h), Image.Resampling.NEAREST)
     alpha_v_img = Image.frombytes('L', (1, canvas_h), alpha_v_bytes).resize((canvas_w, canvas_h), Image.Resampling.NEAREST)
     alpha_img = ImageChops.lighter(alpha_h_img, alpha_v_img)
@@ -668,18 +669,16 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
         font_path_reg = None
 
     try:
-        title_font = ImageFont.truetype(font_path_bold, 54) if font_path_bold else ImageFont.load_default()
+        title_font = ImageFont.truetype(font_path_bold, 48) if font_path_bold else ImageFont.load_default()
         desc_font = ImageFont.truetype(font_path_reg, 19) if font_path_reg else ImageFont.load_default()
         badge_font = ImageFont.truetype(font_path_bold, 18) if font_path_bold else ImageFont.load_default()
-        copyright_font = ImageFont.truetype(font_path_bold, 22) if font_path_bold else ImageFont.load_default()
+        copyright_font = ImageFont.truetype(font_path_bold, 24) if font_path_bold else ImageFont.load_default()
     except Exception as e:
         logger.error(f"Font load error: {e}")
         title_font = desc_font = badge_font = copyright_font = ImageFont.load_default()
 
-    # --- Draw Title (Image Logo or Text Logo) ---
+    # --- Draw Title (Logo or Normal Text) ---
     logo_drawn = False
-    next_y = 110
-
     if logo_bytes:
         try:
             logo_img = Image.open(BytesIO(logo_bytes))
@@ -687,34 +686,36 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
                 logo_img = logo_img.convert('RGBA')
             lw, lh = logo_img.size
             aspect = lw / lh
-            new_h = 130
+            # Try matching max height first
+            new_h = 120
             new_w = int(new_h * aspect)
-            if new_w > 500:
-                new_w = 500
+            if new_w > 400:
+                new_w = 400
                 new_h = int(new_w / aspect)
             logo_resized = logo_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
             temp_logo = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
+            # Paste logo on left side, directly above badges (y_badges = 510, with margin bottom of logo is y=490)
             logo_x = 50
-            logo_y = 110
+            logo_y = 490 - new_h
             temp_logo.paste(logo_resized, (logo_x, logo_y))
             bg_img = Image.alpha_composite(bg_img.convert('RGBA'), temp_logo).convert('RGB')
             draw = ImageDraw.Draw(bg_img)
             logo_drawn = True
-            next_y = logo_y + new_h + 20
         except Exception as e:
             logger.error(f"Failed to load/draw movie logo: {e}")
 
     if not logo_drawn:
-        # Draw Title as a bold Text Logo with shadow & letter spacing aesthetic
+        # Fall back to normal text title
         title_text = str(title).upper()
+        # Wrap title
         title_lines = []
         current_line = ""
         for word in title_text.split():
             test_line = f"{current_line} {word}".strip()
             bbox = draw.textbbox((0, 0), test_line, font=title_font)
             line_w = bbox[2] - bbox[0]
-            if line_w < 600:
+            if line_w < 750:
                 current_line = test_line
             else:
                 if current_line:
@@ -723,18 +724,22 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
         if current_line:
             title_lines.append(current_line)
 
-        title_lines = title_lines[:2] # Limit text logo to 2 lines
-        y_cursor = 110
+        title_lines = title_lines[:2] # Limit text title to 2 lines
+        title_y = 490
+        # Calculate total height to offset title_y
+        total_title_h = 0
+        line_heights = []
         for line in title_lines:
             bbox = draw.textbbox((0, 0), line, font=title_font)
-            line_h = bbox[3] - bbox[1]
-            # Draw subtle drop shadow for cinematic text logo look
-            draw.text((52, y_cursor + 2), line, fill=(0, 0, 0, 200), font=title_font)
-            draw.text((50, y_cursor), line, fill='white', font=title_font)
-            y_cursor += line_h + 8
-        next_y = y_cursor + 15
+            line_heights.append(bbox[3] - bbox[1])
+            total_title_h += (bbox[3] - bbox[1]) + 10
 
-    # --- Draw Year Badge ---
+        y_cursor = title_y - total_title_h
+        for i, line in enumerate(title_lines):
+            draw.text((50, y_cursor), line, fill='white', font=title_font)
+            y_cursor += line_heights[i] + 10
+
+    # --- Draw Badges (Pills) ---
     def draw_pill(draw, x, y, text, font, bg_color, text_color='white', border_color=None, border_width=2):
         has_star = text.startswith("★")
         display_text = text[1:].strip() if has_star else text
@@ -774,21 +779,29 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
         draw.text((tx, ty), display_text, fill=text_color, font=font)
         return pill_w
 
-    # Year Pill Badge
-    year_str = str(year or "2026").strip()
-    year_y = max(next_y, 240)
-    draw_pill(draw, 50, year_y, year_str, badge_font, bg_color=None, border_color='white', border_width=2)
-
-    # Accent underline bar between year badge and metadata pills
-    draw.line([50, year_y + 48, 230, year_y + 48], fill='#e84393', width=3)
-
-    # Metadata Pills Row (Type, Runtime, Genres, Rating)
+    # Row 1 Badges (Rating, IMDb, Year) at y = 510
     badge_x = 50
-    badge_y = year_y + 60
+    badge_y1 = 510
+
+    # 1. Rating
+    r_val = str(rating or "N/A").strip()
+    if r_val and r_val != "N/A":
+        badge_x += draw_pill(draw, badge_x, badge_y1, f"★ {r_val}", badge_font, bg_color='#E58E26') + 12
+
+    # 2. IMDb
+    badge_x += draw_pill(draw, badge_x, badge_y1, "IMDb", badge_font, bg_color='#F5C518', text_color='black') + 12
+
+    # 3. Year
+    year_str = str(year or "2024").strip()
+    draw_pill(draw, badge_x, badge_y1, year_str, badge_font, bg_color=None, border_color='white', border_width=2)
+
+    # Row 2 Badges (Type, Runtime, Genres) at y = 560
+    badge_x = 50
+    badge_y2 = 560
 
     # 1. Type
     type_str = "SERIES" if season_info and "SEASON" in str(season_info).upper() else "MOVIE"
-    badge_x += draw_pill(draw, badge_x, badge_y, type_str, badge_font, bg_color='#00CEC9', text_color='black') + 12
+    badge_x += draw_pill(draw, badge_x, badge_y2, type_str, badge_font, bg_color='#D63031') + 12
 
     # 2. Runtime
     def format_runtime(runtime_str):
@@ -806,7 +819,7 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
 
     fmt_runtime = format_runtime(runtime)
     if fmt_runtime:
-        badge_x += draw_pill(draw, badge_x, badge_y, fmt_runtime, badge_font, bg_color=None, border_color='#e84393', border_width=2) + 12
+        badge_x += draw_pill(draw, badge_x, badge_y2, fmt_runtime, badge_font, bg_color='#8E44AD') + 12
 
     # 3. Genres
     genres_to_draw = []
@@ -815,15 +828,13 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
     elif isinstance(genres, str) and genres:
         genres_to_draw = [g.strip().upper() for g in genres.split(",") if g.strip() and g.strip().upper() != 'N/A'][:2]
 
-    genre_colors = ['#fdcb6e', '#00b894']
-    text_colors = ['black', 'black']
+    genre_colors = ['#2980B9', '#D35400']
     for idx, genre_text in enumerate(genres_to_draw):
-        color = genre_colors[idx] if idx < len(genre_colors) else '#00b894'
-        txt_col = text_colors[idx] if idx < len(text_colors) else 'black'
-        badge_x += draw_pill(draw, badge_x, badge_y, genre_text, badge_font, bg_color=None, border_color=color, text_color='white', border_width=2) + 12
+        color = genre_colors[idx] if idx < len(genre_colors) else '#2980B9'
+        badge_x += draw_pill(draw, badge_x, badge_y2, genre_text, badge_font, bg_color=color) + 12
 
-    # --- Draw Plot Description ---
-    def wrap_text_to_lines(draw, text, font, max_width, max_lines=3):
+    # --- Draw Plot (max 2 lines) at y = 612 ---
+    def wrap_text_to_lines(draw, text, font, max_width, max_lines=2):
         words = text.split()
         lines = []
         current_line = ""
@@ -847,27 +858,85 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
         return lines
 
     desc_text = str(description or "").strip()
-    y_plot_end = badge_y + 50
     if desc_text:
-        plot_lines = wrap_text_to_lines(draw, desc_text, desc_font, max_width=680, max_lines=3)
-        y_plot = badge_y + 50
+        plot_lines = wrap_text_to_lines(draw, desc_text, desc_font, max_width=950, max_lines=2)
+        y_plot = 612
         for line in plot_lines:
-            draw.text((50, y_plot), line, fill='#D1D5DB', font=desc_font)
+            draw.text((50, y_plot), line, fill='#F0F0F0', font=desc_font)
             bbox = draw.textbbox((0, 0), line, font=desc_font)
             y_plot += (bbox[3] - bbox[1]) + 8
-        y_plot_end = y_plot
 
-    # --- Draw Watermark Copyright Text Under Description ---
-    watermark_y = y_plot_end + 15
-    if watermark_y < 600:
-        copyright_text = "@cholochhitro"
-        # Draw styled copyright watermark with subtle shadow
-        draw.text((52, watermark_y + 2), copyright_text, fill=(0, 0, 0, 180), font=copyright_font)
-        draw.text((50, watermark_y), copyright_text, fill=(255, 255, 255, 200), font=copyright_font)
+    # --- Draw Copyright Badge in Top Right ---
+    copyright_text = "@cholochhitro"
+    c_bbox = draw.textbbox((0, 0), copyright_text, font=copyright_font)
+    ctw = c_bbox[2] - c_bbox[0]
+    cth = c_bbox[3] - c_bbox[1]
 
-    # --- Draw Large Vertical Poster Box on Right Side ---
-    px, py = 810, 105
-    pw, ph = 410, 535
+    # Capsule dimensions and placement
+    pill_h = 50
+    # Left margin (12) + Telegram logo diameter (30, radius 15) + Gap (12) + Text width (ctw) + Right margin (18)
+    r = 15
+    pill_w = 12 + (2 * r) + 12 + ctw + 18
+
+    # Place capsule so its right edge is at x=1230
+    x_start = 1230 - pill_w
+    # Content area top begins at 54, so y=70 places it nicely below the top black bar with some spacing
+    y_start = 70
+
+    try:
+        # 1. Crop background region for blur
+        pill_box = (x_start, y_start, x_start + pill_w, y_start + pill_h)
+        cropped = bg_img.crop(pill_box)
+
+        # 2. Apply strong blur for frosted glass effect
+        blurred = cropped.filter(ImageFilter.GaussianBlur(20))
+        blurred = blurred.convert('RGBA')
+
+        # 3. Apply a translucent white sheen overlay
+        overlay = Image.new('RGBA', blurred.size, (255, 255, 255, 45))
+        frosted = Image.alpha_composite(blurred, overlay)
+
+        # 4. Create capsule mask
+        mask = Image.new('L', (pill_w, pill_h), 0)
+        mask_draw = ImageDraw.Draw(mask)
+        mask_draw.rounded_rectangle([0, 0, pill_w, pill_h], radius=pill_h // 2, fill=255)
+
+        # 5. Composite back onto bg_img
+        bg_rgba = bg_img.convert('RGBA')
+        temp_layer = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
+        temp_layer.paste(frosted, (x_start, y_start), mask)
+        bg_rgba = Image.alpha_composite(bg_rgba, temp_layer)
+
+        # 6. Draw semi-transparent white border
+        border_layer = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
+        border_draw = ImageDraw.Draw(border_layer)
+        border_draw.rounded_rectangle([x_start, y_start, x_start + pill_w, y_start + pill_h], radius=pill_h // 2, outline=(255, 255, 255, 150), width=1)
+        bg_rgba = Image.alpha_composite(bg_rgba, border_layer)
+        bg_img = bg_rgba.convert('RGB')
+        draw = ImageDraw.Draw(bg_img)
+    except Exception as e:
+        logger.error(f"Failed to generate frosted glass copyright badge: {e}")
+        # Fallback to simple capsule without blur if anything fails
+        draw.rounded_rectangle([x_start, y_start, x_start + pill_w, y_start + pill_h], radius=pill_h // 2, fill=(0, 0, 0, 150), outline='white', width=2)
+
+    try:
+        # 7. Draw Telegram logo inside the capsule
+        logo_cx = x_start + 12 + r
+        logo_cy = y_start + pill_h // 2
+        draw_telegram_logo(draw, logo_cx, logo_cy, r)
+
+        # 8. Draw vertically centered copyright text inside the capsule
+        tx = x_start + 12 + (2 * r) + 12
+        ty = y_start + (pill_h - cth) // 2 - c_bbox[1]
+        # Draw text with subtle shadow first for readability on any background
+        draw.text((tx + 1, ty + 1), copyright_text, fill=(0, 0, 0, 120), font=copyright_font)
+        draw.text((tx, ty), copyright_text, fill=(255, 255, 255, 255), font=copyright_font)
+    except Exception as e:
+        logger.error(f"Failed to draw capsule contents: {e}")
+
+    # --- Draw Small Vertical Poster (Bottom Right) ---
+    px, py = 1050, 390
+    pw, ph = 160, 240
 
     if poster_bytes:
         try:
@@ -876,7 +945,7 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
 
             mask = Image.new('L', (pw, ph), 0)
             mask_draw = ImageDraw.Draw(mask)
-            mask_draw.rounded_rectangle([0, 0, pw, ph], radius=24, fill=255)
+            mask_draw.rounded_rectangle([0, 0, pw, ph], radius=12, fill=255)
 
             temp_layer = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
             temp_layer.paste(poster_img.convert('RGBA'), (px, py), mask)
@@ -884,15 +953,14 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
             bg_img = Image.alpha_composite(bg_img.convert('RGBA'), temp_layer).convert('RGB')
             draw = ImageDraw.Draw(bg_img)
 
-            # Draw smooth rounded cyan/white glow border
-            draw.rounded_rectangle([px - 2, py - 2, px + pw + 2, py + ph + 2], radius=26, outline='#00CEC9', width=4)
+            draw.rounded_rectangle([px - 2, py - 2, px + pw + 2, py + ph + 2], radius=14, outline='white', width=4)
         except Exception as e:
             logger.error(f"Failed to fetch/paste vertical poster: {e}")
 
     # --- Draw Widescreen Cinematic Black Bars (Top & Bottom) ---
     # Top bar: 0 to 54
     draw.rectangle([0, 0, canvas_w, 54], fill='black')
-    # Bottom bar: 665 to 720
+    # Bottom bar: 665 to 720 (720 - 55 = 665)
     draw.rectangle([0, 665, canvas_w, canvas_h], fill='black')
 
     out = BytesIO()
