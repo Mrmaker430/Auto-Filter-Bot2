@@ -54,7 +54,7 @@ async def download_video(client, message):
 
         ydl_opts = {
             'outtmpl': f'yt_dlp_downloads/{user_id}_%(title)s.%(ext)s',
-            'format': 'best',
+            'format': 'bestvideo+bestaudio/best[vcodec!=none][acodec!=none]/best',
             'quiet': True,
         }
 
