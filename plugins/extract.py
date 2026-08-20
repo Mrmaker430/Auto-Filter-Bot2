@@ -18,11 +18,32 @@ from web.utils import get_name
 logger = logging.getLogger(__name__)
 
 def find_mediainfo_library() -> str | None:
+    apt_lib_paths = [
+        "/app/.apt/usr/lib/x86_64-linux-gnu",
+        "/app/.apt/usr/lib/aarch64-linux-gnu",
+        "/app/.apt/usr/lib",
+        os.path.abspath("./.apt/usr/lib/x86_64-linux-gnu"),
+        os.path.abspath("./.apt/usr/lib/aarch64-linux-gnu"),
+        os.path.abspath("./.apt/usr/lib"),
+    ]
+    existing_ld = os.environ.get("LD_LIBRARY_PATH", "")
+    ld_dirs = list(existing_ld.split(os.pathsep)) if existing_ld else []
+    for apt_dir in apt_lib_paths:
+        if os.path.isdir(apt_dir) and apt_dir not in ld_dirs:
+            ld_dirs.append(apt_dir)
+    os.environ["LD_LIBRARY_PATH"] = os.pathsep.join(filter(None, ld_dirs))
+
     if os.path.exists("MediaInfo.dll"):
         return os.path.abspath("MediaInfo.dll")
+
     found = ctypes.util.find_library("mediainfo")
     if found:
-        return found
+        try:
+            ctypes.CDLL(found)
+            return found
+        except OSError:
+            pass
+
     search_patterns = [
         "/app/.apt/usr/lib/x86_64-linux-gnu/libmediainfo.so*",
         "/app/.apt/usr/lib/aarch64-linux-gnu/libmediainfo.so*",
@@ -37,8 +58,13 @@ def find_mediainfo_library() -> str | None:
     ]
     for pattern in search_patterns:
         matches = glob.glob(pattern)
-        if matches:
-            return matches[0]
+        for match in matches:
+            try:
+                ctypes.CDLL(match)
+                return os.path.abspath(match)
+            except OSError:
+                continue
+
     return None
 
 TELEGRAPH_ACCESS_TOKEN = os.environ.get("TELEGRAPH_ACCESS_TOKEN") or "38a8ac190ac77ad863fa0c3fa98bdf0bb563fa200211b168062e5313b401"
