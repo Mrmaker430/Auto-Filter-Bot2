@@ -116,7 +116,7 @@ BAD_WORDS = {"PrivateMovieZ",
              "original"}
 
 IS_FILE_LIMIT = bool(environ.get('IS_FILE_LIMIT', True)) 
-FILES_LIMIT = int(environ.get("FILES_LIMIT", "8"))
+FILES_LIMIT = int(environ.get("FILES_LIMIT", "5"))
 QUALITY_LIMIT = bool(environ.get('QUALITY_LIMIT', False)) 
 FREE_QUALITIES = ["360p", "480p"]
 
