@@ -1,5 +1,7 @@
 import asyncio
 import os
+import glob
+import ctypes.util
 import logging
 import aiofiles
 import tempfile
@@ -14,6 +16,30 @@ from info import BIN_CHANNEL
 from web.utils import get_name
 
 logger = logging.getLogger(__name__)
+
+def find_mediainfo_library() -> str | None:
+    if os.path.exists("MediaInfo.dll"):
+        return os.path.abspath("MediaInfo.dll")
+    found = ctypes.util.find_library("mediainfo")
+    if found:
+        return found
+    search_patterns = [
+        "/app/.apt/usr/lib/x86_64-linux-gnu/libmediainfo.so*",
+        "/app/.apt/usr/lib/aarch64-linux-gnu/libmediainfo.so*",
+        "/app/.apt/usr/lib/libmediainfo.so*",
+        "./.apt/usr/lib/x86_64-linux-gnu/libmediainfo.so*",
+        "./.apt/usr/lib/aarch64-linux-gnu/libmediainfo.so*",
+        "./.apt/usr/lib/libmediainfo.so*",
+        "/usr/lib/x86_64-linux-gnu/libmediainfo.so*",
+        "/usr/lib/aarch64-linux-gnu/libmediainfo.so*",
+        "/usr/lib/libmediainfo.so*",
+        "/usr/local/lib/libmediainfo.so*",
+    ]
+    for pattern in search_patterns:
+        matches = glob.glob(pattern)
+        if matches:
+            return matches[0]
+    return None
 
 TELEGRAPH_ACCESS_TOKEN = os.environ.get("TELEGRAPH_ACCESS_TOKEN") or "38a8ac190ac77ad863fa0c3fa98bdf0bb563fa200211b168062e5313b401"
 if TELEGRAPH_ACCESS_TOKEN:
@@ -97,12 +123,20 @@ async def extract_data_handler(client: Client, query: CallbackQuery):
             async for chunk in client.stream_media(log_msg, limit=chunk_limit):
                 await f.write(chunk)
 
-        lib_path = os.path.abspath("MediaInfo.dll") if os.path.exists("MediaInfo.dll") else None
+        lib_path = find_mediainfo_library()
 
-        media_info = await asyncio.wait_for(
-            asyncio.to_thread(MediaInfo.parse, temp_path, library_file=lib_path),
-            timeout=6
-        )
+        try:
+            media_info = await asyncio.wait_for(
+                asyncio.to_thread(MediaInfo.parse, temp_path, library_file=lib_path),
+                timeout=6
+            )
+        except (RuntimeError, OSError) as e:
+            logger.exception("MediaInfo library error: %s", e)
+            await query.message.reply_text(
+                "❌ MediaInfo library is not installed or available on the server.",
+                quote=True
+            )
+            return
         audio_tracks = []
         subtitle_tracks = []
         video_info = []
