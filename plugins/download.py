@@ -1,4 +1,5 @@
 import os
+import shutil
 import logging
 import httpx
 import yt_dlp
@@ -52,9 +53,16 @@ async def download_video(client, message):
     try:
         os.makedirs("yt_dlp_downloads", exist_ok=True)
 
+        has_ffmpeg = shutil.which('ffmpeg') is not None
+        format_selector = (
+            'bestvideo+bestaudio/best[vcodec!=none][acodec!=none]/best'
+            if has_ffmpeg
+            else 'best[vcodec!=none][acodec!=none]/best'
+        )
+
         ydl_opts = {
             'outtmpl': f'yt_dlp_downloads/{user_id}_%(title)s.%(ext)s',
-            'format': 'bestvideo+bestaudio/best[vcodec!=none][acodec!=none]/best',
+            'format': format_selector,
             'quiet': True,
         }
 
