@@ -624,7 +624,7 @@ def draw_telegram_logo(draw, cx, cy, r):
 def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title, description, genres, year, season_info, rating="N/A", runtime=None):
     import os
     import math
-    from PIL import ImageDraw, ImageFont, ImageFilter, ImageOps, ImageChops
+    from PIL import ImageDraw, ImageFont, ImageOps, ImageChops
     from io import BytesIO
     import re
 
@@ -641,9 +641,9 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
         except Exception as e:
             logger.error(f"Failed to open backdrop: {e}")
 
-    # Smooth horizontal and vertical dark gradient overlay for text legibility
-    alpha_h_bytes = bytes(int(max(0, (1.0 - (x / 750.0)) * 220)) for x in range(canvas_w))
-    alpha_v_bytes = bytes(min(255, max(0, int(((y - 150) / 500.0) * 200))) for y in range(canvas_h))
+    # Smooth dark gradient overlay for text legibility (darker on left and bottom)
+    alpha_h_bytes = bytes(int(max(0, (1.0 - (x / 800.0)) * 230)) for x in range(canvas_w))
+    alpha_v_bytes = bytes(min(255, max(0, int(((y - 100) / 550.0) * 180))) for y in range(canvas_h))
     alpha_h_img = Image.frombytes('L', (canvas_w, 1), alpha_h_bytes).resize((canvas_w, canvas_h), Image.Resampling.NEAREST)
     alpha_v_img = Image.frombytes('L', (1, canvas_h), alpha_v_bytes).resize((canvas_w, canvas_h), Image.Resampling.NEAREST)
     alpha_img = ImageChops.lighter(alpha_h_img, alpha_v_img)
@@ -651,6 +651,38 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
     black_img = Image.new('L', (canvas_w, canvas_h), 0)
     overlay = Image.merge('RGBA', (black_img, black_img, black_img, alpha_img))
     bg_img = Image.alpha_composite(bg_img.convert('RGBA'), overlay).convert('RGB')
+
+    # --- 1. Right Side Portrait Poster Card ---
+    post_w, post_h = 360, 545
+    post_x, post_y = 815, 85
+    post_radius = 24
+
+    if poster_bytes:
+        try:
+            p_img = Image.open(BytesIO(poster_bytes))
+            p_img = ImageOps.fit(p_img, (post_w, post_h), centering=(0.5, 0.5)).convert('RGBA')
+
+            mask = Image.new('L', (post_w, post_h), 0)
+            m_draw = ImageDraw.Draw(mask)
+            m_draw.rounded_rectangle([0, 0, post_w, post_h], radius=post_radius, fill=255)
+            p_img.putalpha(mask)
+
+            bg_img_rgba = bg_img.convert('RGBA')
+            bg_img_rgba.paste(p_img, (post_x, post_y), p_img)
+            bg_img = bg_img_rgba.convert('RGB')
+        except Exception as e:
+            logger.error(f"Failed to process poster image: {e}")
+
+    # Cyan / Teal Border around Portrait Poster
+    border_layer = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
+    b_draw = ImageDraw.Draw(border_layer)
+    b_draw.rounded_rectangle(
+        [post_x, post_y, post_x + post_w, post_y + post_h],
+        radius=post_radius,
+        outline=(0, 245, 212, 255),  # Cyan / Teal (#00F5D4)
+        width=4
+    )
+    bg_img = Image.alpha_composite(bg_img.convert('RGBA'), border_layer).convert('RGB')
 
     draw = ImageDraw.Draw(bg_img)
 
@@ -668,20 +700,78 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
         font_path_reg = None
 
     try:
-        title_font = ImageFont.truetype(font_path_bold, 42) if font_path_bold else ImageFont.load_default()
+        title_font = ImageFont.truetype(font_path_bold, 44) if font_path_bold else ImageFont.load_default()
+        rating_font = ImageFont.truetype(font_path_bold, 28) if font_path_bold else ImageFont.load_default()
+        imdb_badge_font = ImageFont.truetype(font_path_bold, 16) if font_path_bold else ImageFont.load_default()
         badge_font = ImageFont.truetype(font_path_bold, 15) if font_path_bold else ImageFont.load_default()
         plot_font = ImageFont.truetype(font_path_reg, 18) if font_path_reg else ImageFont.load_default()
-        promo_head_font = ImageFont.truetype(font_path_bold, 13) if font_path_bold else ImageFont.load_default()
-        promo_title_font = ImageFont.truetype(font_path_bold, 22) if font_path_bold else ImageFont.load_default()
-        promo_sub_font = ImageFont.truetype(font_path_reg, 12) if font_path_reg else ImageFont.load_default()
-        imdb_val_font = ImageFont.truetype(font_path_bold, 32) if font_path_bold else ImageFont.load_default()
-        imdb_lbl_font = ImageFont.truetype(font_path_bold, 11) if font_path_bold else ImageFont.load_default()
-        footer_font = ImageFont.truetype(font_path_bold, 15) if font_path_bold else ImageFont.load_default()
+        copyright_font = ImageFont.truetype(font_path_bold, 24) if font_path_bold else ImageFont.load_default()
     except Exception as e:
         logger.error(f"Font load error: {e}")
-        title_font = badge_font = plot_font = promo_head_font = promo_title_font = promo_sub_font = imdb_val_font = imdb_lbl_font = footer_font = ImageFont.load_default()
+        title_font = rating_font = imdb_badge_font = badge_font = plot_font = copyright_font = ImageFont.load_default()
 
-    # --- 1. Top Right IMDb Rating Box ---
+    left_x = 80
+    max_text_w = 680
+    curr_y = 80
+
+    # --- 2. Title Logo or Title Text ---
+    logo_drawn = False
+    if logo_bytes:
+        try:
+            logo_img = Image.open(BytesIO(logo_bytes)).convert('RGBA')
+            lw, lh = logo_img.size
+            max_lw, max_lh = max_text_w, 160
+            ratio = min(max_lw / lw, max_lh / lh)
+            new_w, new_h = max(1, int(lw * ratio)), max(1, int(lh * ratio))
+            logo_img = logo_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+            bg_rgba = bg_img.convert('RGBA')
+            bg_rgba.paste(logo_img, (left_x, curr_y), logo_img)
+            bg_img = bg_rgba.convert('RGB')
+            draw = ImageDraw.Draw(bg_img)
+            curr_y += new_h + 20
+            logo_drawn = True
+        except Exception as e:
+            logger.error(f"Failed to render title logo: {e}")
+
+    if not logo_drawn:
+        title_text = str(title or "").upper().strip()
+        words = title_text.split()
+        title_lines, c_line = [], ""
+        for w in words:
+            t_line = f"{c_line} {w}".strip()
+            bbox = draw.textbbox((0, 0), t_line, font=title_font)
+            if bbox[2] - bbox[0] <= max_text_w:
+                c_line = t_line
+            else:
+                if c_line: title_lines.append(c_line)
+                c_line = w
+        if c_line: title_lines.append(c_line)
+        title_lines = title_lines[:2]
+
+        for line in title_lines:
+            draw.text((left_x, curr_y), line, fill='white', font=title_font)
+            bbox = draw.textbbox((0, 0), line, font=title_font)
+            curr_y += (bbox[3] - bbox[1]) + 8
+        curr_y += 12
+
+    # --- 3. Rating & Info Row ---
+    # Star icon + score + IMDb pill badge + Year outline badge
+    star_cx = left_x + 12
+    star_cy = curr_y + 16
+
+    # Draw Yellow Star
+    r_out, r_in = 12, 5
+    star_points = []
+    for idx in range(10):
+        r_val = r_out if idx % 2 == 0 else r_in
+        angle = idx * math.pi / 5 - math.pi / 2
+        px = star_cx + r_val * math.cos(angle)
+        py = star_cy + r_val * math.sin(angle)
+        star_points.append((px, py))
+    draw.polygon(star_points, fill=(255, 204, 0))  # Gold / Yellow
+
+    # Rating score
     r_str = str(rating or "N/A").strip()
     try:
         r_num = float(r_str)
@@ -689,169 +779,108 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
     except (ValueError, TypeError):
         rating_display = "N/A" if r_str in ["N/A", "None", ""] else r_str
 
-    imdb_box_x, imdb_box_y = 1040, 35
-    imdb_box_w, imdb_box_h = 180, 115
+    rx = left_x + 30
+    draw.text((rx, curr_y), rating_display, fill='white', font=rating_font)
+    r_bbox = draw.textbbox((0, 0), rating_display, font=rating_font)
+    rx += (r_bbox[2] - r_bbox[0]) + 16
 
-    # Translucent card background with golden accent outline
-    card_bg = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
-    card_draw = ImageDraw.Draw(card_bg)
-    card_draw.rounded_rectangle(
-        [imdb_box_x, imdb_box_y, imdb_box_x + imdb_box_w, imdb_box_y + imdb_box_h],
-        radius=14,
-        fill=(18, 18, 20, 190),
-        outline=(180, 140, 50, 220),
-        width=1
+    # IMDb Yellow Badge
+    imdb_w, imdb_h = 60, 30
+    badge_bg = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
+    b_draw = ImageDraw.Draw(badge_bg)
+    b_draw.rounded_rectangle(
+        [rx, curr_y, rx + imdb_w, curr_y + imdb_h],
+        radius=15,
+        fill=(245, 197, 24, 255)  # IMDb Gold
     )
-    bg_img = Image.alpha_composite(bg_img.convert('RGBA'), card_bg).convert('RGB')
+    bg_img = Image.alpha_composite(bg_img.convert('RGBA'), badge_bg).convert('RGB')
     draw = ImageDraw.Draw(bg_img)
 
-    # Draw Laurel Wreath around rating
-    center_x = imdb_box_x + (imdb_box_w // 2)
-    center_y = imdb_box_y + 36
+    imdb_bbox = draw.textbbox((0, 0), "IMDb", font=imdb_badge_font)
+    iw = imdb_bbox[2] - imdb_bbox[0]
+    ih = imdb_bbox[3] - imdb_bbox[1]
+    draw.text((rx + (imdb_w - iw) // 2, curr_y + (imdb_h - ih) // 2 - imdb_bbox[1]), "IMDb", fill='black', font=imdb_badge_font)
+    rx += imdb_w + 14
 
-    # Draw Left and Right Laurel Branches (gold arcs with leaves)
-    gold_color = (235, 195, 45)
-    for side in (-1, 1):
-        for deg in range(-70, 70, 20):
-            rad = math.radians(deg)
-            lx = center_x + side * (38 + math.sin(rad) * 4)
-            ly = center_y + math.sin(rad) * 22
-            angle = rad * side
-            # Draw leaf
-            leaf_len = 8
-            x2 = lx + side * math.cos(angle) * leaf_len
-            y2 = ly + math.sin(angle) * leaf_len
-            draw.line([(lx, ly), (x2, y2)], fill=gold_color, width=2)
+    # Year Badge (Outline Pill)
+    year_str = str(year or "").strip()
+    if year_str and year_str != "N/A":
+        yb_bbox = draw.textbbox((0, 0), year_str, font=imdb_badge_font)
+        yw = (yb_bbox[2] - yb_bbox[0]) + 24
+        yh = 30
 
-    # Draw Rating Value
-    r_bbox = draw.textbbox((0, 0), rating_display, font=imdb_val_font)
-    r_w = r_bbox[2] - r_bbox[0]
-    r_h = r_bbox[3] - r_bbox[1]
-    draw.text((center_x - r_w // 2, center_y - r_h // 2 - r_bbox[1]), rating_display, fill='white', font=imdb_val_font)
+        year_bg = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
+        yb_draw = ImageDraw.Draw(year_bg)
+        yb_draw.rounded_rectangle(
+            [rx, curr_y, rx + yw, curr_y + yh],
+            radius=15,
+            fill=(15, 15, 20, 160),
+            outline=(255, 255, 255, 220),
+            width=2
+        )
+        bg_img = Image.alpha_composite(bg_img.convert('RGBA'), year_bg).convert('RGB')
+        draw = ImageDraw.Draw(bg_img)
 
-    # IMDb Label
-    lbl_text = "IMDb RATING"
-    lbl_bbox = draw.textbbox((0, 0), lbl_text, font=imdb_lbl_font)
-    lbl_w = lbl_bbox[2] - lbl_bbox[0]
-    draw.text((center_x - lbl_w // 2, imdb_box_y + 68), lbl_text, fill=gold_color, font=imdb_lbl_font)
+        draw.text((rx + 12, curr_y + (yh - (yb_bbox[3] - yb_bbox[1])) // 2 - yb_bbox[1]), year_str, fill='white', font=imdb_badge_font)
 
-    # Star Rating Row (5 stars)
-    star_y = imdb_box_y + 88
-    total_stars_w = 5 * 14 + 4 * 4
-    start_star_x = center_x - total_stars_w // 2
+    curr_y += 42
 
-    # Calculate filled stars based on r_num out of 10 (scale to 5 stars)
-    try:
-        filled_stars = int(round(r_num / 2.0))
-    except (ValueError, UnboundLocalError):
-        filled_stars = 3
+    # --- 4. Magenta / Pink Horizontal Accent Line ---
+    line_w, line_h = 220, 5
+    draw.rectangle([left_x, curr_y, left_x + line_w, curr_y + line_h], fill=(233, 30, 99))  # Pink / Magenta (#E91E63)
+    curr_y += line_h + 24
 
-    for s_idx in range(5):
-        sx = start_star_x + s_idx * 18 + 7
-        sy = star_y + 7
-        r_out, r_in = 6, 2.5
-        points = []
-        for idx in range(10):
-            r = r_out if idx % 2 == 0 else r_in
-            angle = idx * math.pi / 5 - math.pi / 2
-            px = sx + r * math.cos(angle)
-            py = sy + r * math.sin(angle)
-            points.append((px, py))
-        s_fill = gold_color if s_idx < filled_stars else (90, 90, 90)
-        draw.polygon(points, fill=s_fill)
-
-    # --- 2. Middle Left Title ---
-    left_x = 60
-    title_text = str(title or "").upper().strip()
-
-    title_lines = []
-    current_line = ""
-    for word in title_text.split():
-        test_line = f"{current_line} {word}".strip()
-        bbox = draw.textbbox((0, 0), test_line, font=title_font)
-        if bbox[2] - bbox[0] < 650:
-            current_line = test_line
-        else:
-            if current_line:
-                title_lines.append(current_line)
-            current_line = word
-    if current_line:
-        title_lines.append(current_line)
-    title_lines = title_lines[:2]
-
-    title_start_y = 250
-    curr_y = title_start_y
-    for line in title_lines:
-        draw.text((left_x, curr_y), line, fill='white', font=title_font)
-        bbox = draw.textbbox((0, 0), line, font=title_font)
-        curr_y += (bbox[3] - bbox[1]) + 8
-
-    # Subtle colored underline under title
-    underline_w = min(120, max(60, int((draw.textbbox((0, 0), title_lines[0], font=title_font)[2] - left_x) * 0.35))) if title_lines else 80
-    draw.rectangle([left_x, curr_y + 2, left_x + underline_w, curr_y + 5], fill=(195, 160, 90))
-
-    # --- 3. Pill Badges Row ---
-    curr_y += 24
-
-    def draw_badge(x, y, text):
+    # --- 5. Category / Genre Badges Row ---
+    def draw_colored_badge(x, y, text, border_color, text_color):
         nonlocal bg_img, draw
         bbox = draw.textbbox((0, 0), text, font=badge_font)
         tw = bbox[2] - bbox[0]
         th = bbox[3] - bbox[1]
         pw = tw + 28
-        ph = 32
+        ph = 34
 
         badge_layer = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
         bl_draw = ImageDraw.Draw(badge_layer)
-        bl_draw.rounded_rectangle([x, y, x + pw, y + ph], radius=ph // 2, fill=(35, 35, 40, 200))
+        bl_draw.rounded_rectangle(
+            [x, y, x + pw, y + ph],
+            radius=ph // 2,
+            fill=(12, 18, 24, 190),
+            outline=border_color,
+            width=2
+        )
         bg_img = Image.alpha_composite(bg_img.convert('RGBA'), badge_layer).convert('RGB')
         draw = ImageDraw.Draw(bg_img)
 
         tx = x + 14
         ty = y + (ph - th) // 2 - bbox[1]
-        draw.text((tx, ty), text, fill='white', font=badge_font)
+        draw.text((tx, ty), text, fill=text_color, font=badge_font)
         return pw
 
-    # Badges list: Runtime, Genres, Year, Certificate/Type
-    def format_runtime_str(runtime_val):
-        if not runtime_val or runtime_val == "N/A":
-            return None
-        m = re.search(r'(\d+)', str(runtime_val))
-        if m:
-            minutes = int(m.group(1))
-            h = minutes // 60
-            mins = minutes % 60
-            return f"{h}H {mins}M" if h > 0 else f"{mins}M"
-        return str(runtime_val).upper()
+    badge_colors = [
+        ((0, 245, 212, 255), (0, 245, 212)),      # Cyan
+        ((255, 0, 127, 255), (255, 0, 127)),      # Magenta
+        ((255, 204, 0, 255), (255, 204, 0)),      # Gold
+    ]
 
-    badges = []
-    fmt_rt = format_runtime_str(runtime)
-    if fmt_rt:
-        badges.append(fmt_rt)
+    badges_data = []
+    type_tag = "SERIES" if (season_info and "SEASON" in str(season_info).upper()) or (season_info == "SERIES") else "MOVIE"
+    badges_data.append(type_tag)
 
-    # Add genres
-    genres_list = []
     if isinstance(genres, list):
-        genres_list = [g.strip().upper() for g in genres if g.strip()][:2]
+        badges_data.extend([g.strip().upper() for g in genres if g.strip() and g.strip().upper() != 'N/A'][:2])
     elif isinstance(genres, str) and genres:
-        genres_list = [g.strip().upper() for g in genres.split(",") if g.strip() and g.strip().upper() != 'N/A'][:2]
-    badges.extend(genres_list)
-
-    if year and str(year).strip() != "N/A":
-        badges.append(str(year).strip())
-
-    type_badge = "SERIES" if season_info and "SEASON" in str(season_info).upper() else "PG-13"
-    badges.append(type_badge)
+        badges_data.extend([g.strip().upper() for g in genres.split(",") if g.strip() and g.strip().upper() != 'N/A'][:2])
 
     bx = left_x
-    for b_text in badges:
-        bw = draw_badge(bx, curr_y, b_text)
-        bx += bw + 10
+    for i, b_text in enumerate(badges_data):
+        b_outline, b_text_col = badge_colors[i % len(badge_colors)]
+        bw = draw_colored_badge(bx, curr_y, b_text, b_outline, b_text_col)
+        bx += bw + 12
 
-    # --- 4. Plot Description ---
-    curr_y += 48
+    curr_y += 52
+
+    # --- 6. Plot Description ---
     desc_text = str(description or "").strip()
-
     if desc_text:
         words = desc_text.split()
         plot_lines = []
@@ -859,16 +888,15 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
         for w in words:
             t_line = f"{c_line} {w}".strip()
             bbox = draw.textbbox((0, 0), t_line, font=plot_font)
-            if bbox[2] - bbox[0] <= 580:
+            if bbox[2] - bbox[0] <= max_text_w:
                 c_line = t_line
             else:
-                if c_line:
-                    plot_lines.append(c_line)
+                if c_line: plot_lines.append(c_line)
                 c_line = w
-                if len(plot_lines) == 2:
+                if len(plot_lines) == 3:
                     plot_lines[-1] = plot_lines[-1].rstrip(".,!?;:") + "..."
                     break
-        if c_line and len(plot_lines) < 2:
+        if c_line and len(plot_lines) < 3:
             plot_lines.append(c_line)
 
         for line in plot_lines:
@@ -876,59 +904,40 @@ def _draw_landscape_poster_sync(backdrop_bytes, poster_bytes, logo_bytes, title,
             bbox = draw.textbbox((0, 0), line, font=plot_font)
             curr_y += (bbox[3] - bbox[1]) + 6
 
-    # --- 5. Telegram Promo Card (Bottom Left) ---
-    promo_x, promo_y = left_x, 520
-    promo_w, promo_h = 440, 92
+    # --- 7. Copyright Glass Capsule (@cholochhitro) ---
+    # Placed under description, centered in the left panel block (cx = left_x + max_text_w // 2)
+    capsule_h = 56
+    capsule_text = "@cholochhitro"
+    c_text_bbox = draw.textbbox((0, 0), capsule_text, font=copyright_font)
+    c_text_w = c_text_bbox[2] - c_text_bbox[0]
 
-    p_card = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
-    p_draw = ImageDraw.Draw(p_card)
-    p_draw.rounded_rectangle(
-        [promo_x, promo_y, promo_x + promo_w, promo_y + promo_h],
-        radius=14,
-        fill=(24, 20, 18, 210),
-        outline=(170, 125, 60, 220),
+    tg_icon_r = 18
+    capsule_w = c_text_w + tg_icon_r * 2 + 50
+    capsule_center_x = left_x + (max_text_w // 2)
+    capsule_x = capsule_center_x - (capsule_w // 2)
+    capsule_y = max(curr_y + 30, 590)
+
+    capsule_bg = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
+    cap_draw = ImageDraw.Draw(capsule_bg)
+    cap_draw.rounded_rectangle(
+        [capsule_x, capsule_y, capsule_x + capsule_w, capsule_y + capsule_h],
+        radius=capsule_h // 2,
+        fill=(255, 255, 255, 45),       # Semi-transparent glass fill
+        outline=(255, 255, 255, 100),   # Light border outline
         width=1
     )
-    bg_img = Image.alpha_composite(bg_img.convert('RGBA'), p_card).convert('RGB')
+    bg_img = Image.alpha_composite(bg_img.convert('RGBA'), capsule_bg).convert('RGB')
     draw = ImageDraw.Draw(bg_img)
 
-    # Blue Telegram Icon inside card
-    tg_icon_cx = promo_x + 36
-    tg_icon_cy = promo_y + promo_h // 2
-    draw_telegram_logo(draw, tg_icon_cx, tg_icon_cy, r=18)
+    # Telegram Icon inside capsule
+    tg_cx = capsule_x + tg_icon_r + 14
+    tg_cy = capsule_y + (capsule_h // 2)
+    draw_telegram_logo(draw, tg_cx, tg_cy, r=tg_icon_r)
 
-    # Texts inside card
-    tx_start = promo_x + 72
-    draw.text((tx_start, promo_y + 14), "EXCLUSIVELY ON TELEGRAM", fill=(215, 175, 75), font=promo_head_font)
-    draw.text((tx_start, promo_y + 32), "@cholochhitro", fill='white', font=promo_title_font)
-    draw.text((tx_start, promo_y + 62), "Your Destination For Quality Movies", fill=(180, 180, 180), font=promo_sub_font)
-
-    # --- 6. Bottom Footer Bar ---
-    footer_line_y = 672
-    draw.line([(0, footer_line_y), (canvas_w, footer_line_y)], fill=(120, 90, 45), width=1)
-
-    # Centered "STAY CONNECTED [TG ICON] @cholochhitro"
-    t1 = "STAY CONNECTED"
-    t2 = "@cholochhitro"
-    b1 = draw.textbbox((0, 0), t1, font=footer_font)
-    b2 = draw.textbbox((0, 0), t2, font=footer_font)
-    w1 = b1[2] - b1[0]
-    w2 = b2[2] - b2[0]
-
-    tg_r = 10
-    gap = 12
-    total_footer_w = w1 + gap + (2 * tg_r) + gap + w2
-    footer_start_x = (canvas_w - total_footer_w) // 2
-    footer_y = footer_line_y + 15
-
-    draw.text((footer_start_x, footer_y), t1, fill='white', font=footer_font)
-
-    icon_cx = footer_start_x + w1 + gap + tg_r
-    icon_cy = footer_y + (b1[3] - b1[1]) // 2 + 1
-    draw_telegram_logo(draw, icon_cx, icon_cy, r=tg_r)
-
-    t2_x = icon_cx + tg_r + gap
-    draw.text((t2_x, footer_y), t2, fill='white', font=footer_font)
+    # Text @cholochhitro inside capsule
+    tg_tx = tg_cx + tg_icon_r + 14
+    tg_ty = capsule_y + (capsule_h - (c_text_bbox[3] - c_text_bbox[1])) // 2 - c_text_bbox[1]
+    draw.text((tg_tx, tg_ty), capsule_text, fill='white', font=copyright_font)
 
     out = BytesIO()
     bg_img.save(out, format="JPEG", quality=85)
