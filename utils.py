@@ -167,11 +167,14 @@ async def users_broadcast(user_id, message, is_pin):
     try:
         m=await message.copy(chat_id=user_id)
         if is_pin:
-            await m.pin(both_sides=True)
+            try:
+                await m.pin(both_sides=True)
+            except Exception:
+                pass
         return True, "Success"
     except FloodWait as e:
-        await asyncio.sleep(e.x)
-        return await users_broadcast(user_id, message)
+        await asyncio.sleep(e.value)
+        return await users_broadcast(user_id, message, is_pin)
     except InputUserDeactivated:
         await db.delete_user(int(user_id))
         logging.info(f"{user_id}-Removed from Database, since deleted account.")
