@@ -164,13 +164,15 @@ async def broadcast_users(bot, message):
     success = blocked = deleted = failed = 0
     start_time = time.time()
     cancelled = False
+    sem = asyncio.Semaphore(20)
     async def send(user):
-        try:
-            _, result = await users_broadcast(int(user["id"]), b_msg, is_pin)
-            return result
-        except Exception as e:
-            logging.exception(f"Error sending broadcast to {user['id']}")
-            return "Error"
+        async with sem:
+            try:
+                _, result = await users_broadcast(int(user["id"]), b_msg, is_pin)
+                return result
+            except Exception as e:
+                logging.exception(f"Error sending broadcast to {user['id']}")
+                return "Error"
     async with lock:
         for i in range(0, total_users, 100):
             if temp.B_USERS_CANCEL:
@@ -190,15 +192,18 @@ async def broadcast_users(bot, message):
                     failed += 1
             done = i + len(batch)
             elapsed = get_readable_time(time.time() - start_time)
-            await techifybots_status_msg.edit(
-                f"📣 <b>Broadcast Progress....:</b>\n\n"
-                f"👥 Total: <code>{total_users}</code>\n"
-                f"✅ Done: <code>{done}</code>\n"
-                f"📬 Success: <code>{success}</code>\n"
-                f"⛔ Blocked: <code>{blocked}</code>\n"
-                f"🗑️ Deleted: <code>{deleted}</code>\n"
-                f"⏱️ Time: {elapsed}",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ CANCEL", callback_data="broadcast_cancel#users")]]))
+            try:
+                await techifybots_status_msg.edit(
+                    f"📣 <b>Broadcast Progress....:</b>\n\n"
+                    f"👥 Total: <code>{total_users}</code>\n"
+                    f"✅ Done: <code>{done}</code>\n"
+                    f"📬 Success: <code>{success}</code>\n"
+                    f"⛔ Blocked: <code>{blocked}</code>\n"
+                    f"🗑️ Deleted: <code>{deleted}</code>\n"
+                    f"⏱️ Time: {elapsed}",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ CANCEL", callback_data="broadcast_cancel#users")]]))
+            except Exception:
+                pass
             await asyncio.sleep(0.1)
     elapsed = get_readable_time(time.time() - start_time)
     final_status = (
@@ -251,13 +256,16 @@ async def broadcast_group(bot, message):
                 failed += 1
             done += 1
             if done % 10 == 0:
-                await techifybots_status_msg.edit(
-                    f"📣 <b>Group broadcast progress:</b>\n\n"
-                    f"👥 Total Groups: <code>{total_chats}</code>\n"
-                    f"✅ Completed: <code>{done} / {total_chats}</code>\n"
-                    f"📬 Success: <code>{success}</code>\n"
-                    f"❌ Failed: <code>{failed}</code>",
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ CANCEL", callback_data="broadcast_cancel#groups")]]))
+                try:
+                    await techifybots_status_msg.edit(
+                        f"📣 <b>Group broadcast progress:</b>\n\n"
+                        f"👥 Total Groups: <code>{total_chats}</code>\n"
+                        f"✅ Completed: <code>{done} / {total_chats}</code>\n"
+                        f"📬 Success: <code>{success}</code>\n"
+                        f"❌ Failed: <code>{failed}</code>",
+                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ CANCEL", callback_data="broadcast_cancel#groups")]]))
+                except Exception:
+                    pass
     time_taken = get_readable_time(time.time() - start_time)
     final_status = (
         f"{'❌ <b>Groups broadcast cancelled!</b>' if cancelled else '✅ <b>Group broadcast completed.</b>'}\n"
